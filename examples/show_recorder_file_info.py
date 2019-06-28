@@ -43,10 +43,6 @@ def main():
         metavar='F',
         default="test1.rec",
         help='recorder filename (test1.rec)')
-    argparser.add_argument(
-        '-a', '--show_all',
-        action='store_true',
-        help='show detailed info about all frames content')
     args = argparser.parse_args()
 
     try:
@@ -54,7 +50,7 @@ def main():
         client = carla.Client(args.host, args.port)
         client.set_timeout(60.0)
 
-        print(client.show_recorder_file_info(args.recorder_filename, args.show_all))
+        print(client.show_recorder_file_info(args.recorder_filename))
 
     finally:
         pass
