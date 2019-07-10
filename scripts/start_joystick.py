@@ -102,6 +102,10 @@ except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
 
 
+# Spawn points for Town02 only!
+VEHICLE_SPAWN_POINTS = 83
+PEDESTRIAN_SPAWN_POINTS = 42
+
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
 # ==============================================================================
@@ -795,6 +799,10 @@ def game_loop(args):
         hud = HUD(args.width, args.height)
         world = World(client.get_world(), hud, args.filter)
         controller = DualControl(world, args.autopilot)
+
+        all_spawn_points = world.world.get_map().get_spawn_points()
+        vehicle_spawn_points = all_spawn_points[:VEHICLE_SPAWN_POINTS]
+        pedestrian_spawn_points = all_spawn_points[-PEDESTRIAN_SPAWN_POINTS:]
 
         clock = pygame.time.Clock()
         while True:
