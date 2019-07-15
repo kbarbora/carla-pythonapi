@@ -29,7 +29,7 @@ from __future__ import print_function
 import glob
 import os
 import sys
-
+import stat
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
@@ -157,7 +157,8 @@ class World(object):
             spawn_point.rotation.roll = 0.0
             spawn_point.rotation.pitch = 0.0
             self.destroy()
-            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+            actor = self.world.try_spawn_actor(blueprint, spawn_point)
+            self.player = actor
         while self.player is None:
             spawn_points = self.world.get_map().get_spawn_points()
             spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
@@ -209,7 +210,6 @@ class DualControl(object):
         if isinstance(world.player, carla.Vehicle):
             self._control = carla.VehicleControl()
             world.player.set_autopilot(self._autopilot_enabled)
-            #world.player.set_autopilot(False)
         elif isinstance(world.player, carla.Walker):
             self._control = carla.WalkerControl()
             self._autopilot_enabled = False
@@ -230,7 +230,7 @@ class DualControl(object):
         self._joystick.init()
 
         self._parser = ConfigParser()
-        self._parser.read('/opt/9.5Carla/wheel_config.ini')
+        self._parser.read('wheel_config.ini')
         self._steer_idx = int(
             self._parser.get('G29 Racing Wheel', 'steering_wheel'))
         self._throttle_idx = int(
@@ -392,7 +392,7 @@ class HUD(object):
         self._notifications = FadingText(font, (width, 40), (0, height - 40))
         self.help = HelpText(pygame.font.Font(mono, 24), width, height)
         self.server_fps = 0
-        self.frame_number = 0
+        self.frame = 0
         self.simulation_time = 0
         self._show_info = True
         self._info_text = []
@@ -401,7 +401,7 @@ class HUD(object):
     def on_world_tick(self, timestamp):
         self._server_clock.tick()
         self.server_fps = self._server_clock.get_fps()
-        self.frame_number = timestamp.frame_count
+        self.frame = timestamp.frame
         self.simulation_time = timestamp.elapsed_seconds
 
     def tick(self, world, clock):
@@ -416,25 +416,21 @@ class HUD(object):
         heading += 'E' if 179.5 > t.rotation.yaw > 0.5 else ''
         heading += 'W' if -0.5 > t.rotation.yaw > -179.5 else ''
         colhist = world.collision_sensor.get_collision_history()
-        collision = [colhist[x + self.frame_number - 200] for x in range(0, 200)]
+        collision = [colhist[x + self.frame - 200] for x in range(0, 200)]
         max_col = max(1.0, max(collision))
         collision = [x / max_col for x in collision]
         vehicles = world.world.get_actors().filter('vehicle.*')
         self._info_text = [
             'Server:  % 16.0f FPS' % self.server_fps,
             'Client:  % 16.0f FPS' % clock.get_fps(),
-            '',
             'Vehicle: % 20s' % get_actor_display_name(world.player, truncate=20),
-            #'Map:     % 20s' % world.world.map_name,
             'Map:     % 20s' % world.world.get_map().name,
             'Simulation time: % 12s' % datetime.timedelta(seconds=int(self.simulation_time)),
-            '',
             'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)),
-            u'Heading:% 16.0f\N{DEGREE SIGN} % 2s' % (t.rotation.yaw, heading),
+           u'Heading:% 16.0f\N{DEGREE SIGN} % 2s' % (t.rotation.yaw, heading),
             'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (t.location.x, t.location.y)),
             'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (world.gnss_sensor.lat, world.gnss_sensor.lon)),
-            'Height:  % 18.0f m' % t.location.z,
-            '']
+            'Height:  % 18.0f m' % t.location.z]
         if isinstance(c, carla.VehicleControl):
             self._info_text += [
                 ('Throttle:', c.throttle, 0.0, 1.0),
@@ -449,10 +445,8 @@ class HUD(object):
                 ('Speed:', c.speed, 0.0, 5.556),
                 ('Jump:', c.jump)]
         self._info_text += [
-            '',
             'Collision:',
             collision,
-            '',
             'Number of vehicles: % 8d' % len(vehicles)]
         if len(vehicles) > 1:
             self._info_text += ['Nearby vehicles:']
@@ -463,10 +457,17 @@ class HUD(object):
                     break
                 vehicle_type = get_actor_display_name(vehicle, truncate=22)
                 self._info_text.append('% 4dm %s' % (d, vehicle_type))
-        # print(self._info_text)
 
-    def get_driving_data(self):
-        return self._info_text
+    def write_driving_data(self):
+        text = self._info_text
+        if len(text) > 0:
+            text.pop(-3)  # remove collision field
+            text.pop(-2)  # remove collision data field
+            text = str(text).replace(' ', '')  # remove spaces
+            text = text[1:-1] # remove [] at the beginning and end
+            text = text.replace('(', '').replace(')', '')  # remove ()
+            log.write(text + '\n')
+        return
 
     def toggle_info(self):
         self._show_info = not self._show_info
@@ -607,7 +608,7 @@ class CollisionSensor(object):
         self.hud.notification('Collision with %r' % actor_type)
         impulse = event.normal_impulse
         intensity = math.sqrt(impulse.x**2 + impulse.y**2 + impulse.z**2)
-        self.history.append((event.frame_number, intensity))
+        self.history.append((event.frame, intensity))
         if len(self.history) > 4000:
             self.history.pop(0)
 
@@ -765,7 +766,7 @@ class CameraManager(object):
             array = array[:, :, ::-1]
             self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
         if self.recording:
-            image.save_to_disk('_out/%08d' % image.frame_number)
+            image.save_to_disk('_out/%08d' % image.frame)
 
 
 # ==============================================================================
@@ -783,6 +784,8 @@ def game_loop(args):
         client = carla.Client(args.host, args.port)
         client.set_timeout(2.0)
 
+        log = create_logfile(args)
+
         display = pygame.display.set_mode(
             (args.width, args.height),
             pygame.HWSURFACE | pygame.DOUBLEBUF)
@@ -796,12 +799,16 @@ def game_loop(args):
             clock.tick_busy_loop(60)
             if controller.parse_events(world, clock):
                 return
+
+            hud.write_driving_data()
+
             world.tick(clock)
             world.render(display)
             pygame.display.flip()
 
     finally:
-
+        # if log is not None:
+        #     log.close()
         if world is not None:
             world.destroy()
 
@@ -819,6 +826,8 @@ def get_hud():
 
 
 def main():
+    # global args
+
     argparser = argparse.ArgumentParser(
         description='CARLA Manual Control Client')
     argparser.add_argument(
@@ -851,6 +860,17 @@ def main():
         metavar='PATTERN',
         default='vehicle.*',
         help='actor filter (default: "vehicle.*")')
+    argparser.add_argument(
+        '-l', '--log_filepath',
+        metavar='L',
+        default="../logs/",
+        help='recorder duration (auto-stop)')
+    argparser.add_argument(
+        '-u', '--username',
+        metavar='U',
+        default=00,
+        type=int,
+        help='username-driver identification number (00)')
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]
@@ -868,6 +888,28 @@ def main():
 
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
+
+
+def create_logfile(args):
+    if not os.path.isdir(args.log_filepath):
+        # @todo Create custom exception
+        raise Exception("log filepath " + args.log_filepath + " does not exists.")
+
+    dir_permission = os.stat(args.log_filepath)
+    if not bool(dir_permission.st_mode & stat.S_IWUSR):
+        # @todo Create custom exception
+        raise Exception("log filepath: " + args.log_filepath + " has not write permission. Try with sudo.")
+
+    logname = format_logname(args)
+    log = open(args.log_filepath + logname, 'w')
+    return log
+
+
+def format_logname(args):
+    time_now = str(datetime.datetime.now()).replace(' ', '-')
+    time_now = time_now[:time_now.index('.')]       # delete anything beyond seconds
+    time_now = time_now.replace(':', '')
+    return str(args.username) + '_' + str(time_now) + ".log"
 
 
 if __name__ == '__main__':
