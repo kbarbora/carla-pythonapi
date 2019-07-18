@@ -145,7 +145,7 @@ class World(object):
         cam_index = self.camera_manager.index if self.camera_manager is not None else 0
         cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
         # Get a random blueprint.
-        blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
+        blueprint = self.world.get_blueprint_library().filter(self._actor_filter)[0]
         blueprint.set_attribute('role_name', 'hero')
         if blueprint.has_attribute('color'):
             color = random.choice(blueprint.get_attribute('color').recommended_values)
@@ -161,7 +161,8 @@ class World(object):
             self.player = actor
         while self.player is None:
             spawn_points = self.world.get_map().get_spawn_points()
-            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
+            spawn_point = spawn_points[0] if spawn_points else carla.Transform()
+            # spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         # Set up the sensors.
         self.collision_sensor = CollisionSensor(self.player, self.hud)
@@ -230,7 +231,7 @@ class DualControl(object):
         self._joystick.init()
 
         self._parser = ConfigParser()
-        self._parser.read('wheel_config.ini')
+        self._parser.read('../wheel_config.ini')
         self._steer_idx = int(
             self._parser.get('G29 Racing Wheel', 'steering_wheel'))
         self._throttle_idx = int(
@@ -458,7 +459,7 @@ class HUD(object):
                 vehicle_type = get_actor_display_name(vehicle, truncate=22)
                 self._info_text.append('% 4dm %s' % (d, vehicle_type))
 
-    def write_driving_data(self):
+    def write_driving_data(self, log):
         text = self._info_text
         if len(text) > 0:
             text.pop(-3)  # remove collision field
@@ -800,7 +801,7 @@ def game_loop(args):
             if controller.parse_events(world, clock):
                 return
 
-            hud.write_driving_data()
+            hud.write_driving_data(log)
 
             world.tick(clock)
             world.render(display)
@@ -825,53 +826,7 @@ def get_hud():
 # ==============================================================================
 
 
-def main():
-    # global args
-
-    argparser = argparse.ArgumentParser(
-        description='CARLA Manual Control Client')
-    argparser.add_argument(
-        '-v', '--verbose',
-        action='store_true',
-        dest='debug',
-        help='print debug information')
-    argparser.add_argument(
-        '--host',
-        metavar='H',
-        default='127.0.0.1',
-        help='IP of the host server (default: 127.0.0.1)')
-    argparser.add_argument(
-        '-p', '--port',
-        metavar='P',
-        default=2000,
-        type=int,
-        help='TCP port to listen to (default: 2000)')
-    argparser.add_argument(
-        '-a', '--autopilot',
-        action='store_true',
-        help='enable autopilot')
-    argparser.add_argument(
-        '--res',
-        metavar='WIDTHxHEIGHT',
-        default='1280x720',
-        help='window resolution (default: 1280x720)')
-    argparser.add_argument(
-        '--filter',
-        metavar='PATTERN',
-        default='vehicle.*',
-        help='actor filter (default: "vehicle.*")')
-    argparser.add_argument(
-        '-l', '--log_filepath',
-        metavar='L',
-        default="../logs/",
-        help='recorder duration (auto-stop)')
-    argparser.add_argument(
-        '-u', '--username',
-        metavar='U',
-        default=00,
-        type=int,
-        help='username-driver identification number (00)')
-    args = argparser.parse_args()
+def start(args):
 
     args.width, args.height = [int(x) for x in args.res.split('x')]
 
@@ -910,8 +865,3 @@ def format_logname(args):
     time_now = time_now[:time_now.index('.')]       # delete anything beyond seconds
     time_now = time_now.replace(':', '')
     return str(args.username) + '_' + str(time_now) + ".log"
-
-
-if __name__ == '__main__':
-
-    main()

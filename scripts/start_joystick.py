@@ -3,15 +3,16 @@ import logging
 import os
 import stat
 import datetime
+import _thread
 import sys
 try:
     sys.path.append('../examples')
 except IndexError:
     pass
 import manual_control_steeringwheel as ControlSW
+import spawn_npc as SpawnNPC
 
 def main():
-    global args
 
     argparser = argparse.ArgumentParser(
         description='CARLA Manual Control Client')
@@ -56,44 +57,37 @@ def main():
         default=00,
         type=int,
         help='username-driver identification number (00)')
+    argparser.add_argument(
+        '-n', '--number-of-vehicles',
+        metavar='N',
+        default=10,
+        type=int,
+        help='number of vehicles (default: 10)')
+    argparser.add_argument(
+        '-w', '--number-of-walkers',
+        metavar='W',
+        default=50,
+        type=int,
+        help='number of walkers (default: 50)')
+    argparser.add_argument(
+        '--safe',
+        action='store_true',
+        help='avoid spawning vehicles prone to accidents')
+    argparser.add_argument(
+        '--filterv',
+        metavar='PATTERN',
+        default='vehicle.*',
+        help='vehicles filter (default: "vehicle.*")')
+    argparser.add_argument(
+        '--filterw',
+        metavar='PATTERN',
+        default='walker.pedestrian.*',
+        help='pedestrians filter (default: "walker.pedestrian.*")')
     args = argparser.parse_args()
 
-    args.width, args.height = [int(x) for x in args.res.split('x')]
-
-    log_level = logging.DEBUG if args.debug else logging.INFO
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)
-
-    logging.info('listening to server %s:%s', args.host, args.port)
-
-    print(__doc__)
-
-    try:
-
-        ControlSW.game_loop(args)
-
-    except KeyboardInterrupt:
-        print('\nCancelled by user. Bye!')
-
-
-# def create_logfile():
-#     if not os.path.isdir(args.log_filepath):
-#         # @todo Create custom exception
-#         raise Exception("log filepath " + args.log_filepath + " does not exists.")
-#
-#     dir_permission = os.stat(args.log_filepath)
-#     if not bool(dir_permission.st_mode & stat.S_IWUSR):
-#         # @todo Create custom exception
-#         raise Exception("log filepath: " + args.log_filepath + " has not write permission. Try with sudo.")
-#
-#     logname = format_logname()
-#     return open(args.log_filepath + logname, 'w')
-#
-#
-# def format_logname():
-#     time_now = str(datetime.datetime.now()).replace(' ', '-')
-#     time_now = time_now[:time_now.index('.')]       # delete anything beyond seconds
-#     time_now = time_now.replace(':', '')
-#     return str(args.username) + '_' + str(time_now) + ".log"
+    _thread.start_new_thread(SpawnNPC.main, (args,))
+    # SpawnNPC.main(args)
+    ControlSW.start(args)
 
 
 if __name__ == '__main__':
