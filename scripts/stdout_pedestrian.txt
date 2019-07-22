@@ -1,0 +1,31 @@
+>>> import random
+>>> import sys
+>>> import glob
+>>> sys.path.append('../carla/dist/carla-0.9.5-py2.7-linux-x86_64.egg')
+>>> import carla
+>>> client = carla.Client('127.0.0.1', 2000)
+>>> client.set_timeout(2.0)
+>>> world = client.get_world()
+>>> blueprint = random.choice(self.world.get_blueprint_library().filter('walker.*'))
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+NameError: name 'self' is not defined
+>>> spawn_points = world.get_map().get_spawn_points()
+[2019.07.15-17.25.11:928][427]LogCarla: Loading OpenDrive file '../../../CarlaUE4/Content/Carla/Maps/OpenDrive/Town03.xodr'
+>>> spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
+>>> world.try_spawn_actor(blueprint, spawn_point)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+NameError: name 'blueprint' is not defined
+>>> blueprint = random.choice(client.world.get_blueprint_library().filter('walker.*'))
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AttributeError: 'Client' object has no attribute 'world'
+>>> blueprint = random.choice(client.get_world().get_blueprint_library().filter('walker.*'))
+>>> spawn_points = world.get_map().get_spawn_points()
+[2019.07.15-17.26.23:678][561]LogCarla: Loading OpenDrive file '../../../CarlaUE4/Content/Carla/Maps/OpenDrive/Town03.xodr'
+>>> spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
+>>> world.try_spawn_actor(blueprint, spawn_point)
+[2019.07.15-17.26.46:744][539]LogCarla: Spawning actor 'walker.pedestrian.0001'
+<carla.libcarla.Walker object at 0x7fe7cebe1938>
+
