@@ -1,3 +1,5 @@
+import _thread
+
 import carla
 import random
 import time
@@ -71,11 +73,17 @@ def test():
     world = _init()
     vehicle = spawn_vehicle(world)
     control = carla.VehicleControl()
-    control = modify_control(control, throttle=5, steer=-.5)
+    control = modify_control(control, throttle=0, steer=-.5)
+    _thread.start_new_thread(vehicle_loop, (vehicle, control))
+    # while True:
+    #     vehicle.apply_control(control)
+    #     time.sleep(1)
+
+
+def vehicle_loop(vehicle, control):
     while True:
         vehicle.apply_control(control)
         time.sleep(1)
-
 
 if __name__ == '__main__':
     test()

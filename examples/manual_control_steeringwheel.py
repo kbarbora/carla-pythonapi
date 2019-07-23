@@ -330,9 +330,9 @@ class DualControl(object):
         # Custom function to map range of inputs [1, -1] to outputs [0, 1] i.e 1 from inputs means nothing is pressed
         # For the steering, it seems fine as it is
         K1 = 1.0  # 0.55
-        steerCmd = K1 * math.tan(1.1 * jsInputs[self._steer_idx])
-
         K2 = 1.6  # 1.6
+        steerCmd = K1 * math.tan(0.78 * jsInputs[self._steer_idx])
+
         throttleCmd = K2 + (2.05 * math.log10(
             -0.7 * jsInputs[self._throttle_idx] + 1.4) - 1.2) / 0.92
         if throttleCmd <= 0:
@@ -461,7 +461,7 @@ class HUD(object):
 
     def write_driving_data(self, log):
         text = self._info_text
-        if len(text) > 0:
+        if len(text) > 3:
             text.pop(-3)  # remove collision field
             text.pop(-2)  # remove collision data field
             text = str(text).replace(' ', '')  # remove spaces
@@ -808,8 +808,8 @@ def game_loop(args):
             pygame.display.flip()
 
     finally:
-        # if log is not None:
-        #     log.close()
+        if log is not None:
+            log.close()
         if world is not None:
             world.destroy()
 

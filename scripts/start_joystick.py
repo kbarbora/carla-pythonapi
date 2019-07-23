@@ -5,12 +5,15 @@ import stat
 import datetime
 import _thread
 import sys
+import time
+
 try:
     sys.path.append('../examples')
 except IndexError:
     pass
 import manual_control_steeringwheel as ControlSW
 import spawn_npc as SpawnNPC
+import carla
 
 def main():
 
@@ -84,10 +87,24 @@ def main():
         default='walker.pedestrian.*',
         help='pedestrians filter (default: "walker.pedestrian.*")')
     args = argparser.parse_args()
+    vehicles_list = []
+    walkers_list = []
+    all_id = []
+    try:
+        _thread.start_new_thread(SpawnNPC.main, (args, vehicles_list, walkers_list, all_id))
+        # SpawnNPC.main(args)
+        ControlSW.start(args)
+    finally:
+        client = carla.Client(args.host, args.port)
+        print('destroying %d vehicles' % len(vehicles_list))
+        client.apply_batch([carla.command.DestroyActor(x) for x in vehicles_list])
 
-    _thread.start_new_thread(SpawnNPC.main, (args,))
-    # SpawnNPC.main(args)
-    ControlSW.start(args)
+        # stop walker controllers (list is [controler, actor, controller, actor ...])
+        for i in range(0, len(all_id), 2):
+            client.get_world().get_actors(all_id)[i].stop()
+
+        print('destroying %d walkers' % len(walkers_list))
+        client.apply_batch([carla.command.DestroyActor(x) for x in all_id])
 
 
 if __name__ == '__main__':
