@@ -12,6 +12,13 @@ def _init():
     return world
 
 
+def setup_pedestrian(world, spawn_point=None):
+    blueprints = world.get_blueprint_library().filter("walker")
+    bp = random.choice(blueprints)
+    transform = world.get_map().get_spawn_points()[0] if not spawn_point else spawn_point
+    return bp, transform
+
+
 def spawn_pedestrian(world, spawn_point=None):
     blueprints = world.get_blueprint_library().filter("walker")
     bp = random.choice(blueprints)

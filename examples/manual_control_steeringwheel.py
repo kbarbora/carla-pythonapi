@@ -11,7 +11,7 @@
 """
 Welcome to CARLA manual control with steering wheel Logitech G29.
 
-To drive start by preshing the brake pedal.
+To dffic rive start by preshing the brake pedal.
 Change your wheel_config.ini according to your steering wheel.
 
 To find out the values of your steering wheel use jstest-gtk in Ubuntu.
@@ -145,7 +145,7 @@ class World(object):
         cam_index = self.camera_manager.index if self.camera_manager is not None else 0
         cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
         # Get a random blueprint.
-        blueprint = self.world.get_blueprint_library().filter(self._actor_filter)[0]
+        blueprint = self.world.get_blueprint_library().filter(self._actor_filter)[2]
         blueprint.set_attribute('role_name', 'hero')
         if blueprint.has_attribute('color'):
             color = random.choice(blueprint.get_attribute('color').recommended_values)
@@ -161,7 +161,7 @@ class World(object):
             self.player = actor
         while self.player is None:
             spawn_points = self.world.get_map().get_spawn_points()
-            spawn_point = spawn_points[0] if spawn_points else carla.Transform()
+            spawn_point = spawn_points[1] if spawn_points else carla.Transform()
             # spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         # Set up the sensors.
@@ -231,7 +231,7 @@ class DualControl(object):
         self._joystick.init()
 
         self._parser = ConfigParser()
-        self._parser.read('../wheel_config.ini')
+        self._parser.read('../config/wheel_config.ini')
         self._steer_idx = int(
             self._parser.get('G29 Racing Wheel', 'steering_wheel'))
         self._throttle_idx = int(
@@ -428,7 +428,7 @@ class HUD(object):
             'Map:     % 20s' % world.world.get_map().name,
             'Simulation time: % 12s' % datetime.timedelta(seconds=int(self.simulation_time)),
             'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)),
-           u'Heading:% 16.0f\N{DEGREE SIGN} % 2s' % (t.rotation.yaw, heading),
+           u'Heading:% 16.0f % 2s' % (t.rotation.yaw, heading),
             'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (t.location.x, t.location.y)),
             'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (world.gnss_sensor.lat, world.gnss_sensor.lon)),
             'Height:  % 18.0f m' % t.location.z]
@@ -446,24 +446,26 @@ class HUD(object):
                 ('Speed:', c.speed, 0.0, 5.556),
                 ('Jump:', c.jump)]
         self._info_text += [
-            'Collision:',
-            collision,
+            # 'Collision:',
+            # collision,
             'Number of vehicles: % 8d' % len(vehicles)]
-        if len(vehicles) > 1:
-            self._info_text += ['Nearby vehicles:']
-            distance = lambda l: math.sqrt((l.x - t.location.x)**2 + (l.y - t.location.y)**2 + (l.z - t.location.z)**2)
-            vehicles = [(distance(x.get_location()), x) for x in vehicles if x.id != world.player.id]
-            for d, vehicle in sorted(vehicles):
-                if d > 200.0:
-                    break
-                vehicle_type = get_actor_display_name(vehicle, truncate=22)
-                self._info_text.append('% 4dm %s' % (d, vehicle_type))
+        # if len(vehicles) > 1:
+        #     self._info_text += ['Nearby vehicles:']
+        #     distance = lambda l: math.sqrt((l.x - t.location.x)**2 + (l.y - t.location.y)**2 + (l.z - t.location.z)**2)
+        #     vehicles = [(distance(x.get_location()), x) for x in vehicles if x.id != world.player.id]
+        #     for d, vehicle in sorted(vehicles):
+        #         if d > 200.0:
+        #             break
+        #         vehicle_type = get_actor_display_name(vehicle, truncate=22)
+        #         self._info_text.append('% 4dm %s' % (d, vehicle_type))
+        self._info_text += ['Notifications:', self._notifications.text]
 
     def write_driving_data(self, log):
         text = self._info_text
         if len(text) > 3:
-            text.pop(-3)  # remove collision field
-            text.pop(-2)  # remove collision data field
+            # collision_index = text.index("Collision:")
+            # text.pop(collision_index)  # remove collision field
+            # text.pop(collision_index + 1)  # remove collision data field
             text = str(text).replace(' ', '')  # remove spaces
             text = text[1:-1] # remove [] at the beginning and end
             text = text.replace('(', '').replace(')', '')  # remove ()
@@ -480,7 +482,7 @@ class HUD(object):
         self._notifications.set_text('Error: %s' % text, (255, 0, 0))
 
     def render(self, display):
-        if self._show_info:
+        if not self._show_info:
             info_surface = pygame.Surface((220, self.dim[1]))
             info_surface.set_alpha(100)
             display.blit(info_surface, (0, 0))
@@ -530,8 +532,10 @@ class FadingText(object):
         self.pos = pos
         self.seconds_left = 0
         self.surface = pygame.Surface(self.dim)
+        self.text = ''
 
     def set_text(self, text, color=(255, 255, 255), seconds=2.0):
+        self.text = text
         text_texture = self.font.render(text, True, color)
         self.surface = pygame.Surface(self.dim)
         self.seconds_left = seconds
@@ -639,7 +643,8 @@ class LaneInvasionSensor(object):
             return
         lane_types = set(x.type for x in event.crossed_lane_markings)
         text = ['%r' % str(x).split()[-1] for x in lane_types]
-        self.hud.notification('Crossed line %s' % ' and '.join(text))
+        _lane_invasion_text = 'Crossed line %s' % ' and '.join(text)
+        self.hud.notification(_lane_invasion_text)
 
 # ==============================================================================
 # -- GnssSensor --------------------------------------------------------
@@ -682,18 +687,18 @@ class CameraManager(object):
         self.hud = hud
         self.recording = False
         self._camera_transforms = [
-            carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15)),
-            carla.Transform(carla.Location(x=1.6, z=1.7))]
+            carla.Transform(carla.Location(x=1.6, z=1.7)),
+            carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15))]
         self.transform_index = 1
         self.sensors = [
-            ['sensor.camera.rgb', cc.Raw, 'Camera RGB'],
-            ['sensor.camera.depth', cc.Raw, 'Camera Depth (Raw)'],
-            ['sensor.camera.depth', cc.Depth, 'Camera Depth (Gray Scale)'],
-            ['sensor.camera.depth', cc.LogarithmicDepth, 'Camera Depth (Logarithmic Gray Scale)'],
-            ['sensor.camera.semantic_segmentation', cc.Raw, 'Camera Semantic Segmentation (Raw)'],
-            ['sensor.camera.semantic_segmentation', cc.CityScapesPalette,
-                'Camera Semantic Segmentation (CityScapes Palette)'],
-            ['sensor.lidar.ray_cast', None, 'Lidar (Ray-Cast)']]
+            ['sensor.camera.rgb', cc.Raw, 'Camera RGB']]
+            # ['sensor.camera.depth', cc.Raw, 'Camera Depth (Raw)'],
+            # ['sensor.camera.depth', cc.Depth, 'Camera Depth (Gray Scale)'],
+            # ['sensor.camera.depth', cc.LogarithmicDepth, 'Camera Depth (Logarithmic Gray Scale)'],
+            # ['sensor.camera.semantic_segmentation', cc.Raw, 'Camera Semantic Segmentation (Raw)'],
+            # ['sensor.camera.semantic_segmentation', cc.CityScapesPalette,
+            #     'Camera Semantic Segmentation (CityScapes Palette)'],
+            # ['sensor.lidar.ray_cast', None, 'Lidar (Ray-Cast)']]
         world = self._parent.get_world()
         bp_library = world.get_blueprint_library()
         for item in self.sensors:
@@ -797,7 +802,7 @@ def game_loop(args):
 
         clock = pygame.time.Clock()
         while True:
-            clock.tick_busy_loop(60)
+            clock.tick_busy_loop(40)
             if controller.parse_events(world, clock):
                 return
 

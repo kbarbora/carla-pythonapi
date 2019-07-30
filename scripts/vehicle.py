@@ -13,12 +13,19 @@ def _init():
     world = client.get_world()
     return world
 
-
-def spawn_vehicle(world, spawn_point=None):
+def setup_vehicle(world, blueprint=None, spawn_point=None):
     blueprints = world.get_blueprint_library().filter("vehicle")
-    bp = random.choice(blueprints)
+    bp = random.choice(blueprints) if not blueprint else blueprint
     transform = world.get_map().get_spawn_points()[0] if not spawn_point else spawn_point
-    vehicle = world.spawn_actor(bp, transform)
+    return bp, transform
+
+
+def spawn_vehicle(world, blueprint=None, spawn_point=None):
+    if not blueprint:
+        all_blueprints = world.get_blueprint_library().filter("vehicle")
+        blueprint = random.choice(all_blueprints)
+    transform = world.get_map().get_spawn_points()[0] if not spawn_point else spawn_point
+    vehicle = world.spawn_actor(blueprint, transform)
     return vehicle
 
 

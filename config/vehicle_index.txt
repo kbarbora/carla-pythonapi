@@ -1,0 +1,26 @@
+vehicle.audi.a2
+vehicle.audi.tt
+vehicle.carlamotors.carlacola
+vehicle.citroen.c3
+vehicle.dodge_charger.police
+vehicle.jeep.wrangler_rubicon
+vehicle.yamaha.yzf
+vehicle.nissan.patrol
+vehicle.gazelle.omafiets
+vehicle.bh.crossbike
+vehicle.ford.mustang
+vehicle.bmw.isetta
+vehicle.audi.etron
+vehicle.harley-davidson.low rider
+vehicle.mercedes-benz.coupe
+vehicle.bmw.grandtourer
+vehicle.toyota.prius
+vehicle.diamondback.century
+vehicle.tesla.model3
+vehicle.seat.leon
+vehicle.lincoln.mkz2017
+vehicle.kawasaki.ninja
+vehicle.volkswagen.t2
+vehicle.nissan.micra
+vehicle.chevrolet.impala
+vehicle.mini.cooperst

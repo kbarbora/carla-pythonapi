@@ -48,7 +48,7 @@ def main():
             print(vehicle.type_id)
 
             angle = 0
-            while angle < 356:
+            while angle < 56:
                 timestamp = world.wait_for_tick().timestamp
                 angle += timestamp.delta_seconds * 60.0
                 spectator.set_transform(get_transform(vehicle.get_location(), angle - 90))
