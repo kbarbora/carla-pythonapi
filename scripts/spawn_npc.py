@@ -38,6 +38,7 @@ def main(args, vehicles_list, walkers_list, all_id):
     world = client.get_world()
     blueprints = world.get_blueprint_library().filter(args.filterv)
     blueprintsWalkers = world.get_blueprint_library().filter(args.filterw)
+    blueprints = [x for x in blueprints if not x.id.endswith('carlacola')]
 
     if args.safe:
         blueprints = [x for x in blueprints if int(x.get_attribute('number_of_wheels')) == 4]

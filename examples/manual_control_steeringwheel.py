@@ -158,7 +158,6 @@ class World(object):
             spawn_point.rotation.pitch = 0.0
             self.destroy()
             actor = self.world.try_spawn_actor(blueprint, spawn_point)
-            self.player = actor
         while self.player is None:
             spawn_points = self.world.get_map().get_spawn_points()
             spawn_point = spawn_points[1] if spawn_points else carla.Transform()
@@ -780,7 +779,7 @@ class CameraManager(object):
 # ==============================================================================
 
 
-def game_loop(args):
+def game_loop(args, clock):
     global hud
     pygame.init()
     pygame.font.init()
@@ -800,7 +799,6 @@ def game_loop(args):
         world = World(client.get_world(), hud, args.filter)
         controller = DualControl(world, args.autopilot)
 
-        clock = pygame.time.Clock()
         while True:
             clock.tick_busy_loop(40)
             if controller.parse_events(world, clock):
@@ -831,7 +829,7 @@ def get_hud():
 # ==============================================================================
 
 
-def start(args):
+def start(args, clock):
 
     args.width, args.height = [int(x) for x in args.res.split('x')]
 
@@ -841,11 +839,8 @@ def start(args):
     logging.info('listening to server %s:%s', args.host, args.port)
 
     print(__doc__)
-
     try:
-
-        game_loop(args)
-
+        game_loop(args, clock)
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
 

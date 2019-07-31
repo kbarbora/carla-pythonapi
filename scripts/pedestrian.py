@@ -87,7 +87,7 @@ def destroy_pedestrians(client, all_actors, all_id):
 def test():
     world = _init()
     pedestrian = spawn_pedestrian(world)
-    control = control_pedestrian(pedestrian, speed=1, x=1, y=0, z=0, jump=1)
+    control = control_pedestrian(pedestrian, speed=1, x=0, y=1, z=0, jump=1)
     while True:
         pedestrian.apply_control(control)
         time.sleep(1)

@@ -7,6 +7,8 @@ import _thread
 import sys
 import time
 
+import pygame
+
 try:
     sys.path.append('../examples')
 except IndexError:
@@ -42,7 +44,7 @@ def main():
     argparser.add_argument(
         '--res',
         metavar='WIDTHxHEIGHT',
-        default='1280x720',
+        default='1920x1080',
         help='window resolution (default: 1280x720)')
     argparser.add_argument(
         '--filter',
@@ -93,7 +95,8 @@ def main():
     try:
         _thread.start_new_thread(SpawnNPC.main, (args, vehicles_list, walkers_list, all_id))
         # SpawnNPC.main(args)
-        ControlSW.start(args)
+        clock = pygame.time.Clock()
+        ControlSW.start(args, clock)
     finally:
         client = carla.Client(args.host, args.port)
         print('destroying %d vehicles' % len(vehicles_list))
