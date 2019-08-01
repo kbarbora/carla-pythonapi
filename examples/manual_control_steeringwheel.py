@@ -145,7 +145,7 @@ class World(object):
         cam_index = self.camera_manager.index if self.camera_manager is not None else 0
         cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
         # Get a random blueprint.
-        blueprint = self.world.get_blueprint_library().filter(self._actor_filter)[2]
+        blueprint = self.world.get_blueprint_library().filter(self._actor_filter)[1]
         blueprint.set_attribute('role_name', 'hero')
         if blueprint.has_attribute('color'):
             color = random.choice(blueprint.get_attribute('color').recommended_values)
@@ -386,9 +386,10 @@ class HUD(object):
         font = pygame.font.Font(pygame.font.get_default_font(), 20)
         fonts = [x for x in pygame.font.get_fonts() if 'mono' in x]
         default_font = 'ubuntumono'
-        mono = default_font if default_font in fonts else fonts[0]
-        mono = pygame.font.match_font(mono)
-        self._font_mono = pygame.font.Font(mono, 14)
+        print(fonts)
+        # mono = default_font if default_font in fonts else fonts[0]
+        mono = pygame.font.match_font(default_font)
+        self._font_mono = pygame.font.Font(mono, 26)
         self._notifications = FadingText(font, (width, 40), (0, height - 40))
         self.help = HelpText(pygame.font.Font(mono, 24), width, height)
         self.server_fps = 0
@@ -421,16 +422,11 @@ class HUD(object):
         collision = [x / max_col for x in collision]
         vehicles = world.world.get_actors().filter('vehicle.*')
         self._info_text = [
-            'Server:  % 16.0f FPS' % self.server_fps,
-            'Client:  % 16.0f FPS' % clock.get_fps(),
-            'Vehicle: % 20s' % get_actor_display_name(world.player, truncate=20),
-            'Map:     % 20s' % world.world.get_map().name,
-            'Simulation time: % 12s' % datetime.timedelta(seconds=int(self.simulation_time)),
-            'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)),
+            'Time: % 11s' % datetime.timedelta(seconds=int(self.simulation_time)),
+            'Speed:   % 1.0f km/h' % (3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)),
            u'Heading:% 16.0f % 2s' % (t.rotation.yaw, heading),
             'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (t.location.x, t.location.y)),
-            'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (world.gnss_sensor.lat, world.gnss_sensor.lon)),
-            'Height:  % 18.0f m' % t.location.z]
+            'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (world.gnss_sensor.lat, world.gnss_sensor.lon))]
         if isinstance(c, carla.VehicleControl):
             self._info_text += [
                 ('Throttle:', c.throttle, 0.0, 1.0),
@@ -481,14 +477,17 @@ class HUD(object):
         self._notifications.set_text('Error: %s' % text, (255, 0, 0))
 
     def render(self, display):
-        if not self._show_info:
-            info_surface = pygame.Surface((220, self.dim[1]))
-            info_surface.set_alpha(100)
-            display.blit(info_surface, (0, 0))
+        # if not self._show_info:
+        if self._show_info:
+            #--------Display a black bar to contain the hud data
+            # info_surface = pygame.Surface((self.dim[1], 220))
+            # info_surface.set_alpha(100)
+            # display.blit(info_surface, (0, 0))
+            #---------------------------------------------------
             v_offset = 4
             bar_h_offset = 100
             bar_width = 106
-            for item in self._info_text:
+            for item in self._info_text[:2]:
                 if v_offset + 18 > self.dim[1]:
                     break
                 if isinstance(item, list):
@@ -513,7 +512,8 @@ class HUD(object):
                     item = item[0]
                 if item:  # At this point has to be a str.
                     surface = self._font_mono.render(item, True, (255, 255, 255))
-                    display.blit(surface, (8, v_offset))
+                    # display.blit(surface, (8, v_offset))
+                    display.blit(surface, (1200, v_offset + 800))
                 v_offset += 18
         self._notifications.render(display)
         self.help.render(display)
@@ -686,7 +686,7 @@ class CameraManager(object):
         self.hud = hud
         self.recording = False
         self._camera_transforms = [
-            carla.Transform(carla.Location(x=1.6, z=1.7)),
+            carla.Transform(carla.Location(x=-0.5, y=-.4, z=1.2)),
             carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15))]
         self.transform_index = 1
         self.sensors = [
