@@ -77,12 +77,12 @@ def main():
         help='TCP port to listen to (default: 2000)')
     argparser.add_argument(
         '-x',
-        default=0.0,
+        default=70.0,
         type=float,
         help='X start position (default: 0.0)')
     argparser.add_argument(
         '-y',
-        default=0.0,
+        default=8.0,
         type=float,
         help='Y start position (default: 0.0)')
     argparser.add_argument(
