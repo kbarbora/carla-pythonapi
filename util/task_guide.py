@@ -25,16 +25,18 @@ import argparse
 import math
 import time
 
-green = carla.Color(0, 255, 0)
+green = carla.Color(100, 255, 0)
+blue = carla.Color(0, 0, 255)
 tick_time = 0.05
 trail_life_time = 10
 waypoint_separation = 4
+lifetime = 20
 
 
 def go_straight(debug, current, steps=1, tick_time=0.2):
     for i in range(0, steps):
         next_w = list(current.next(waypoint_separation))[0]
-        draw_waypoint_union(debug, current, next_w, green, 5)
+        draw_waypoint_union(debug, current, next_w, green, lifetime)
 
         # update the current waypoint and sleep for some time
         current = next_w
@@ -42,16 +44,21 @@ def go_straight(debug, current, steps=1, tick_time=0.2):
     return current
 
 
+def change_lane(debug, current):
+    right_lane = current.get_right_lane()
+    change = right_lane.next(waypoint_separation)
+    draw_waypoint_union(debug, current, change[0], green, lifetime)
+    return list(right_lane.next(waypoint_separation))[0]
+
+
 def make_left(debug, current, step=4):
     for i in range(0, step):
         potential = list(current.next(waypoint_separation))
-        print(len(potential))
         if len(potential) > 1:
-            print('-2............')
             next_w = potential[-2]
         else:
             next_w = potential[-1]
-        draw_waypoint_union(debug, current, next_w, green, 5)
+        draw_waypoint_union(debug, current, next_w, green, lifetime)
 
         # update the current waypoint and sleep for some time
         current = next_w
@@ -62,7 +69,7 @@ def make_left(debug, current, step=4):
 def make_right(debug, current, step=4):
     for i in range(0, step):
         next_w = list(current.next(waypoint_separation))[-1]
-        draw_waypoint_union(debug, current, next_w, green, 5)
+        draw_waypoint_union(debug, current, next_w, green, lifetime)
 
         # update the current waypoint and sleep for some time
         current = next_w
@@ -84,7 +91,7 @@ def draw_waypoint_union(debug, w0, w1, color=carla.Color(255, 0, 0), lt=-1):
     debug.draw_line(
         w0.transform.location + carla.Location(z=0.25),
         w1.transform.location + carla.Location(z=0.25),
-        thickness=0.1, color=color, life_time=lt, persistent_lines=True)
+        thickness=0.1, color=color, life_time=lt, persistent_lines=False)
     # debug.draw_point(w1.transform.location + carla.Location(z=0.25), 0.1, color, lt, True)
 
 
@@ -155,16 +162,46 @@ def main():
         current = m.get_waypoint(loc)
         counter = 0
         # main loop
-        current = go_straight(debug, current, 137, tick_time=.005)
+        current = go_straight(debug, current, 137)
         current = make_right(debug, current)
-        current = go_straight(debug, current, 10, tick_time=.005)
+        current = go_straight(debug, current, 10)
         current = make_right(debug, current)
-        current = go_straight(debug, current, 50, tick_time=.005)
+        current = go_straight(debug, current, 50)
         current = make_left(debug, current)
-        current = go_straight(debug, current, 70, tick_time=.005)
+        current = go_straight(debug, current, 70)
         current = make_right(debug, current, 7)
-        current = go_straight(debug, current, 115, tick_time=.005)
+        current = go_straight(debug, current, 115)
         current = make_right(debug, current, 5)
+        current = go_straight(debug, current, 10)
+        current = make_right(debug, current)
+        current = go_straight(debug, current, 15)
+        current = make_right(debug, current)
+        current = go_straight(debug, current, 13)
+        current = make_right(debug, current, 5)
+        current = go_straight(debug, current, 10)
+        current = make_right(debug, current, 5)
+        current = go_straight(debug, current, 78)
+        current = make_left(debug, current, 6)
+        current = go_straight(debug, current, 10)
+        current = change_lane(debug, current)
+        current = go_straight(debug, current, 12)
+        current = make_right(debug, current, 10)
+        current = go_straight(debug, current, 21)
+        current = change_lane(debug, current)
+        current = make_right(debug, current)
+        current = go_straight(debug, current, 21)
+        current = make_right(debug, current)
+        current = go_straight(debug, current, 40)
+        current = make_right(debug, current, 6)
+        current = go_straight(debug, current, 115)
+        current = change_lane(debug, current)
+        current = go_straight(debug, current, 15)
+        current = make_right(debug, current)
+        current = go_straight(debug, current, 11)
+        current = make_right(debug, current,6)
+        current = go_straight(debug, current, 5)
+        current = change_lane(debug, current)
+        current = go_straight(debug, current, 3)
 
     finally:
         pass

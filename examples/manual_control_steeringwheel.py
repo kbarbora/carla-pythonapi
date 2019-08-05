@@ -785,7 +785,7 @@ def game_loop(args, clock):
 
     try:
         client = carla.Client(args.host, args.port)
-        client.set_timeout(2.0)
+        client.set_timeout(2.0)     # timeout in case the client loses connection
 
         log = create_logfile(args)
 
@@ -798,7 +798,7 @@ def game_loop(args, clock):
         controller = DualControl(world, args.autopilot)
 
         while True:
-            clock.tick_busy_loop(40)
+            clock.tick_busy_loop(60)
             if controller.parse_events(world, clock):
                 return
 
