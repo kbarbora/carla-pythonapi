@@ -30,11 +30,12 @@ blue = carla.Color(0, 0, 255)
 tick_time = 0.05
 trail_life_time = 10
 waypoint_separation = 4
-lifetime = 20
+lifetime = -1
 
 
 def go_straight(debug, current, steps=1, tick_time=0.2):
     for i in range(0, steps):
+        # print(list(current.next(waypoint_separation)))
         next_w = list(current.next(waypoint_separation))[0]
         draw_waypoint_union(debug, current, next_w, green, lifetime)
 
@@ -160,6 +161,7 @@ def main():
         print("Initial location: ", loc)
 
         current = m.get_waypoint(loc)
+        # print(current)
         counter = 0
         # main loop
         current = go_straight(debug, current, 137)
