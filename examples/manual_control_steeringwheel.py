@@ -24,12 +24,13 @@ from __future__ import print_function
 # ==============================================================================
 # -- find carla module ---------------------------------------------------------
 # ==============================================================================
-
-
+import thread
 import glob
 import os
 import sys
 import stat
+import time
+
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
@@ -422,55 +423,70 @@ class HUD(object):
             delta_sl = speed - sl
 
         traffic_light = world.player.get_traffic_light_state()
+        # print(traffic_light)
         if traffic_light == 'Red':
             encounter_red_light = True
             stopped_at_red_light = True if speed <= 1 else False
+            print("RED LIGHT")
+            print('Stoped: '+stopped_at_red_light)
         else:
             encounter_red_light = False
+            stopped_at_red_light = False
 
         heading = 'N' if abs(t.rotation.yaw) < 89.5 else ''
         heading += 'S' if abs(t.rotation.yaw) > 90.5 else ''
         heading += 'E' if 179.5 > t.rotation.yaw > 0.5 else ''
         heading += 'W' if -0.5 > t.rotation.yaw > -179.5 else ''
-        vehicles = world.worldworld.get_actors().filter('vehicle.*')
+        vehicles = world.world.get_actors().filter('vehicle.*')
 
-        elapsed_time = datetime.timedelta(seconds=int(self.simulation_time))
+        elapsed_time = str(datetime.timedelta(seconds=int(self.simulation_time)))[2:]
 
+        vehicle_counter = 0
         if len(vehicles) > 1:
-            vehicle_counter = 0
             distance = lambda l: math.sqrt((l.x - t.location.x)**2 + (l.y - t.location.y)**2 + (l.z - t.location.z)**2)
             vehicles = [(distance(x.get_location()), x) for x in vehicles if x.id != world.player.id]
             for d, vehicle in sorted(vehicles):
-                if d > 200.0:
+                if d > 100.0:
                     break
                 vehicle_counter += 1
 
         self._info_text = [
-            'Time: % 11s' % elapsed_time,
-            'Speed:   % 1.0f mph' % speed]
-
+            'Time: % 9s' % elapsed_time,
+            'Speed:   % 1.0f mph' % speed,
+            ('Steer:', c.steer, -1.0, 1.0)]
         self.log_data =\
-            str(elapsed_time)+',' + \
-            str(speed)+',' + \
-            str(t.rotation.yaw) + heading+',' + \
-            str(t.location.x)+' '+str(t.location.y)+',' + \
-            str(c.throttle)+',' + \
-            str(c.steer)+',' + \
-            str(c.brake)+',' + \
-            str(c.reverse)+',' + \
-            str(vehicle_counter)+',' + \
-            str(delta_sl)+',' + \
-            str(encounter_red_light)+',' + \
-            str(stopped_at_red_light)+',' + \
-            self._notifications.text # @todo Verify that notifications has not a ','
+            '{:.2f},'.format(speed) + \
+            '{:.2f}{},'.format(t.rotation.yaw, heading) + \
+            '{:.2f} {:.2f},'.format(t.location.x, t.location.y) + \
+            '{:.2f},'.format(c.throttle) + \
+            '{:.2f},'.format(c.steer) + \
+            '{:.2f},'.format(c.brake) + \
+            '{},'.format(c.reverse) + \
+            '{},'.format(vehicle_counter) + \
+            '{:.2f},'.format(delta_sl) + \
+            '{},'.format(encounter_red_light) + \
+            '{},'.format(stopped_at_red_light) + \
+            self._notifications.text  # @todo Verify that notifications has not a ','
 
-    def write_driving_data(self, log):
-        text = self.log_data
-        if len(text) > 3:
-            # text = str(text).replace(' ', '')  # remove spaces
-            # text = text[1:-1] # remove [] at the beginning and end
-            # text = text.replace('(', '').replace(')', '')  # remove ()
-            log.write(text + '\n')
+    # def write_driving_data(self, log, keep_writing=False):
+    #     while True:
+    #         log.write(self.log_data + '\n')
+    #         time.sleep(1)
+    #         if not keep_writing:
+    #             break
+    #     return
+
+    def write_driving_data(self, keep_writing=False):
+        global log
+        counter = -1
+        while True:
+            if counter > 0:
+                log.write('{},{}\n'.format(counter, self.log_data))
+            # log.write(str(counter) +',' +self.log_data + '\n')
+            time.sleep(1)
+            counter += 1
+            if not keep_writing:
+                break
         return
 
     def toggle_info(self):
@@ -494,31 +510,18 @@ class HUD(object):
             bar_h_offset = 100
             bar_width = 106
             for item in self._info_text:
-                if v_offset + 18 > self.dim[1]:
-                    break
-                if isinstance(item, list):
-                    if len(item) > 1:
-                        points = [(x + 8, v_offset + 8 + (1.0 - y) * 30) for x, y in enumerate(item)]
-                        pygame.draw.lines(display, (255, 136, 0), False, points, 2)
-                    item = None
-                    v_offset += 18
-                elif isinstance(item, tuple):
-                    if isinstance(item[1], bool):
-                        rect = pygame.Rect((bar_h_offset, v_offset + 8), (6, 6))
-                        pygame.draw.rect(display, (255, 255, 255), rect, 0 if item[1] else 1)
+                if isinstance(item, tuple):
+                    rect_border = pygame.Rect((1200 + bar_h_offset, v_offset + 815), (bar_width, 8))
+                    pygame.draw.rect(display, (255, 255, 255), rect_border, 1)
+                    f = (item[1] - item[2]) / (item[3] - item[2])
+                    if item[2] < 0.0:
+                        rect = pygame.Rect((1200 + bar_h_offset + f * (bar_width - 6), v_offset + 815), (6, 6))
                     else:
-                        rect_border = pygame.Rect((bar_h_offset, v_offset + 8), (bar_width, 6))
-                        pygame.draw.rect(display, (255, 255, 255), rect_border, 1)
-                        f = (item[1] - item[2]) / (item[3] - item[2])
-                        if item[2] < 0.0:
-                            rect = pygame.Rect((bar_h_offset + f * (bar_width - 6), v_offset + 8), (6, 6))
-                        else:
-                            rect = pygame.Rect((bar_h_offset, v_offset + 8), (f * bar_width, 6))
-                        pygame.draw.rect(display, (255, 255, 255), rect)
+                        rect = pygame.Rect((1200 + bar_h_offset, v_offset + 815), (f * bar_width, 6))
+                    pygame.draw.rect(display, (255, 255, 255), rect)
                     item = item[0]
                 if item:  # At this point has to be a str.
                     surface = self._font_mono.render(item, True, (255, 255, 255))
-                    # display.blit(surface, (8, v_offset))
                     display.blit(surface, (1200, v_offset + 800))
                 v_offset += 18
         self._notifications.render(display)
@@ -539,7 +542,7 @@ class FadingText(object):
         self.surface = pygame.Surface(self.dim)
         self.text = ''
 
-    def set_text(self, text, color=(255, 255, 255), seconds=2.0):
+    def set_text(self, text, color=(255, 255, 255), seconds=1.0):
         self.text = text
         text_texture = self.font.render(text, True, color)
         self.surface = pygame.Surface(self.dim)
@@ -787,6 +790,7 @@ class CameraManager(object):
 
 def game_loop(args, clock):
     global hud
+    global log
     pygame.init()
     pygame.font.init()
     world = None
@@ -804,12 +808,12 @@ def game_loop(args, clock):
         hud = HUD(args.width, args.height)
         world = World(client.get_world(), hud, args.filter)
         controller = DualControl(world, args.autopilot)
-        write_delay = True
+        thread.start_new_thread(hud.write_driving_data, (True,))
         while True:
             clock.tick_busy_loop(40)    # max fps in client
             if controller.parse_events(world, clock):
                 return
-            hud.write_driving_data(log)
+            # hud.write_driving_data(log)
             world.tick(clock)
             world.render(display)
             pygame.display.flip()
@@ -850,6 +854,7 @@ def start(args, clock):
 
 
 def create_logfile(args):
+    global log
     if not os.path.isdir(args.log_filepath):
         # @todo Create custom exception
         raise Exception("log filepath " + args.log_filepath + " does not exists.")
@@ -859,9 +864,9 @@ def create_logfile(args):
         raise Exception("log filepath: " + args.log_filepath + " has not write permission. Try with sudo.")
     logname = format_logname(args)
     log = open(args.log_filepath + logname, 'w')
-    log.write('Time,Speed,Heading,Location,Throttle,Steer,Brake,Reverse,\
-              Nearby Vehicles,Over Speed Limit,\
-              Encounter red light,Stopped red light,Notifications\n')
+    log.write('Seconds,Speed,Heading,Location,Throttle,Steer,Brake,Reverse,' +
+              'Near Vehicles,Over SL,' +
+              'Red Light,Stopped RL,Notifications\n')
     return log
 
 
@@ -870,4 +875,4 @@ def format_logname(args):
     # time_now = time_now[:time_now.index('.')]       # delete anything beyond seconds
     # time_now = time_now.replace(':', '')
     # return str(args.username) + '_' + str(time_now) + ".log"
-    return "driver.log"  # @todo Placeholder for debug purposes
+    return "driver.csv"  # @todo Placeholder for debug purposes
