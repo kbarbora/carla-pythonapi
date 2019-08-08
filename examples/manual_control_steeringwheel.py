@@ -395,6 +395,7 @@ class HUD(object):
         self.simulation_time = 0
         self._show_info = True
         self._info_text = []
+        self.log_data = ""
         self._server_clock = pygame.time.Clock()
 
     def on_world_tick(self, timestamp):
@@ -413,62 +414,62 @@ class HUD(object):
         c = world.player.get_control()
 
         sl = world.player.get_speed_limit()
-        print(sl)
+        # print(sl)
         speed_kmh = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
         speed = speed_kmh / 1.609       # show km/h to mph conversion
         delta_sl = 0
         if speed > sl:
             delta_sl = speed - sl
 
+        traffic_light = world.player.get_traffic_light_state()
+        if traffic_light == 'Red':
+            encounter_red_light = True
+            stopped_at_red_light = True if speed <= 1 else False
+        else:
+            encounter_red_light = False
+
         heading = 'N' if abs(t.rotation.yaw) < 89.5 else ''
         heading += 'S' if abs(t.rotation.yaw) > 90.5 else ''
         heading += 'E' if 179.5 > t.rotation.yaw > 0.5 else ''
         heading += 'W' if -0.5 > t.rotation.yaw > -179.5 else ''
-        # colhist = world.collision_sensor.get_collision_history()
-        # collision = [colhist[x + self.frame - 200] for x in range(0, 200)]
-        # max_col = max(1.0, max(collision))
-        # collision = [x / max_col for x in collision]
-        # vehicles = world.world.get_actors().filter('vehicle.*')
+        vehicles = world.worldworld.get_actors().filter('vehicle.*')
+
+        elapsed_time = datetime.timedelta(seconds=int(self.simulation_time))
+
+        if len(vehicles) > 1:
+            vehicle_counter = 0
+            distance = lambda l: math.sqrt((l.x - t.location.x)**2 + (l.y - t.location.y)**2 + (l.z - t.location.z)**2)
+            vehicles = [(distance(x.get_location()), x) for x in vehicles if x.id != world.player.id]
+            for d, vehicle in sorted(vehicles):
+                if d > 200.0:
+                    break
+                vehicle_counter += 1
 
         self._info_text = [
-            'Time: % 11s' % datetime.timedelta(seconds=int(self.simulation_time)),
-            'Speed:   % 1.0f mph' % speed,
-           u'Heading:% 16.0f % 2s' % (t.rotation.yaw, heading),
-            'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (t.location.x, t.location.y)),
-            'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (world.gnss_sensor.lat, world.gnss_sensor.lon))]
-        self._info_text += [
-            ('Throttle:', c.throttle, 0.0, 1.0),
-            ('Steer:', c.steer, -1.0, 1.0),
-            ('Brake:', c.brake, 0.0, 1.0),
-            ('Reverse:', c.reverse),
-            ('Hand brake:', c.hand_brake),
-            ('Manual:', c.manual_gear_shift),
-            'Gear:        %s' % {-1: 'R', 0: 'N'}.get(c.gear, c.gear)]
-        # self._info_text += [
-            # 'Collision:',
-            # collision,
-            # 'Number of vehicles: % 8d' % len(vehicles)]
-        # if len(vehicles) > 1:
-        #     self._info_text += ['Nearby vehicles:']
-        #     distance = lambda l: math.sqrt((l.x - t.location.x)**2 + (l.y - t.location.y)**2 + (l.z - t.location.z)**2)
-        #     vehicles = [(distance(x.get_location()), x) for x in vehicles if x.id != world.player.id]
-        #     for d, vehicle in sorted(vehicles):
-        #         if d > 200.0:
-        #             break
-        #         vehicle_type = get_actor_display_name(vehicle, truncate=22)
-        #         self._info_text.append('% 4dm %s' % (d, vehicle_type))
-        self._info_text += ['Notifications:', self._notifications.text]
-        self._info_text += ['Over speed limit:', delta_sl]
+            'Time: % 11s' % elapsed_time,
+            'Speed:   % 1.0f mph' % speed]
+
+        self.log_data =\
+            str(elapsed_time)+',' + \
+            str(speed)+',' + \
+            str(t.rotation.yaw) + heading+',' + \
+            str(t.location.x)+' '+str(t.location.y)+',' + \
+            str(c.throttle)+',' + \
+            str(c.steer)+',' + \
+            str(c.brake)+',' + \
+            str(c.reverse)+',' + \
+            str(vehicle_counter)+',' + \
+            str(delta_sl)+',' + \
+            str(encounter_red_light)+',' + \
+            str(stopped_at_red_light)+',' + \
+            self._notifications.text # @todo Verify that notifications has not a ','
 
     def write_driving_data(self, log):
-        text = self._info_text
+        text = self.log_data
         if len(text) > 3:
-            # collision_index = text.index("Collision:")
-            # text.pop(collision_index)  # remove collision field
-            # text.pop(collision_index + 1)  # remove collision data field
-            text = str(text).replace(' ', '')  # remove spaces
-            text = text[1:-1] # remove [] at the beginning and end
-            text = text.replace('(', '').replace(')', '')  # remove ()
+            # text = str(text).replace(' ', '')  # remove spaces
+            # text = text[1:-1] # remove [] at the beginning and end
+            # text = text.replace('(', '').replace(')', '')  # remove ()
             log.write(text + '\n')
         return
 
@@ -492,7 +493,7 @@ class HUD(object):
             v_offset = 4
             bar_h_offset = 100
             bar_width = 106
-            for item in self._info_text[:2]:
+            for item in self._info_text:
                 if v_offset + 18 > self.dim[1]:
                     break
                 if isinstance(item, list):
@@ -852,19 +853,21 @@ def create_logfile(args):
     if not os.path.isdir(args.log_filepath):
         # @todo Create custom exception
         raise Exception("log filepath " + args.log_filepath + " does not exists.")
-
     dir_permission = os.stat(args.log_filepath)
     if not bool(dir_permission.st_mode & stat.S_IWUSR):
         # @todo Create custom exception
         raise Exception("log filepath: " + args.log_filepath + " has not write permission. Try with sudo.")
-
     logname = format_logname(args)
     log = open(args.log_filepath + logname, 'w')
+    log.write('Time,Speed,Heading,Location,Throttle,Steer,Brake,Reverse,\
+              Nearby Vehicles,Over Speed Limit,\
+              Encounter red light,Stopped red light,Notifications\n')
     return log
 
 
 def format_logname(args):
-    time_now = str(datetime.datetime.now()).replace(' ', '-')
-    time_now = time_now[:time_now.index('.')]       # delete anything beyond seconds
-    time_now = time_now.replace(':', '')
-    return str(args.username) + '_' + str(time_now) + ".log"
+    # time_now = str(datetime.datetime.now()).replace(' ', '-')
+    # time_now = time_now[:time_now.index('.')]       # delete anything beyond seconds
+    # time_now = time_now.replace(':', '')
+    # return str(args.username) + '_' + str(time_now) + ".log"
+    return "driver.log"  # @todo Placeholder for debug purposes
