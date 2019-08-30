@@ -22,6 +22,8 @@ def setup_pedestrian(world, spawn_point=None):
 def spawn_pedestrian(world, spawn_point=None):
     blueprints = world.get_blueprint_library().filter("walker")
     bp = random.choice(blueprints)
+    if bp.has_attribute('is_invincible'):
+        bp.set_attribute('is_invincible', 'false')
     transform = world.get_map().get_spawn_points()[0] if not spawn_point else spawn_point
     pedestrian = world.spawn_actor(bp, transform)
     return pedestrian
@@ -87,7 +89,7 @@ def destroy_pedestrians(client, all_actors, all_id):
 def test():
     world = _init()
     pedestrian = spawn_pedestrian(world)
-    control = control_pedestrian(pedestrian, speed=1, x=0, y=1, z=0, jump=1)
+    control = control_pedestrian(pedestrian, speed=2, x=0, y=1, z=0, jump=0)
     while True:
         pedestrian.apply_control(control)
         time.sleep(1)

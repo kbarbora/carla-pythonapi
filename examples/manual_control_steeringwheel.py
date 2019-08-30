@@ -161,7 +161,7 @@ class World(object):
             actor = self.world.try_spawn_actor(blueprint, spawn_point)
         while self.player is None:
             spawn_points = self.world.get_map().get_spawn_points()
-            spawn_point = spawn_points[1] if spawn_points else carla.Transform()
+            spawn_point = spawn_points[11] if spawn_points else carla.Transform()
             # spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         # Set up the sensors.
@@ -695,6 +695,7 @@ class CameraManager(object):
         self.hud = hud
         self.recording = False
         self._camera_transforms = [
+            carla.Transform(carla.Location(x=-0.1, y=-.3, z=1.2), carla.Rotation(yaw=5)),
             carla.Transform(carla.Location(x=-0.5, y=-.4, z=1.2)),
             carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15))]
         self.transform_index = 1

@@ -187,7 +187,7 @@ class World(object):
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         while self.player is None:
             spawn_points = self.map.get_spawn_points()
-            spawn_point = spawn_points[1] if spawn_points else carla.Transform()
+            spawn_point = spawn_points[2] if spawn_points else carla.Transform()
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         # Set up the sensors.
         self.collision_sensor = CollisionSensor(self.player, self.hud)

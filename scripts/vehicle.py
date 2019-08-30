@@ -9,21 +9,30 @@ vehicle_list = []
 
 
 def _init():
+    global world
+    global blueprints
     client = carla.Client('127.0.0.1', 2000)
     world = client.get_world()
-    return world
-
-def setup_vehicle(world, blueprint=None, spawn_point=None):
     blueprints = world.get_blueprint_library().filter("vehicle")
+    # return world
+
+
+def setup_vehicle(blueprint=None, spawn_point=None):
+    global blueprints, world
     bp = random.choice(blueprints) if not blueprint else blueprint
     transform = world.get_map().get_spawn_points()[0] if not spawn_point else spawn_point
     return bp, transform
 
 
-def spawn_vehicle(world, blueprint=None, spawn_point=None):
-    if not blueprint:
-        all_blueprints = world.get_blueprint_library().filter("vehicle")
-        blueprint = random.choice(all_blueprints)
+def spawn_vehicle(filter=None, spawn_point=None):
+    global world, blueprints
+    _init()
+    if not filter:
+        blueprint = random.choice(blueprints)
+    else:
+        print("vehicle." + filter)
+        blueprint = world.get_blueprint_library().filter("vehicle." + filter)
+        blueprint = blueprint[0]
     transform = world.get_map().get_spawn_points()[0] if not spawn_point else spawn_point
     vehicle = world.spawn_actor(blueprint, transform)
     return vehicle
