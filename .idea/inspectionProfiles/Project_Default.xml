@@ -3,7 +3,7 @@
     <option name="myName" value="Project Default" />
     <inspection_tool class="DuplicatedCode" enabled="true" level="WEAK WARNING" enabled_by_default="true">
       <Languages>
-        <language minSize="73" name="Python" />
+        <language minSize="111" name="Python" />
       </Languages>
     </inspection_tool>
     <inspection_tool class="PyCompatibilityInspection" enabled="true" level="WARNING" enabled_by_default="true">
@@ -22,6 +22,9 @@
         <list>
           <option value="game_thread" />
           <option value="scripts.game_thread.manual_control_steeringwheel" />
+          <option value="scripts.introduction.round_rect" />
+          <option value="carla_parser" />
+          <option value="scripts.introduction.filledRoundedRect" />
         </list>
       </option>
     </inspection_tool>
