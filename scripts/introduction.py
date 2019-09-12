@@ -26,7 +26,7 @@ def text_objects(text, font):
     return textSurface, textSurface.get_rect()
 
 
-def intro(args):
+def intro_screen(width, height):
     intro_control = True
     while intro_control:
         for event in pygame.event.get():
@@ -34,21 +34,28 @@ def intro(args):
                 pygame.quit()
                 sys.exit()
         display = pygame.display.set_mode(
-            (args.width, args.height),
-            pygame.HWSURFACE | pygame.DOUBLEBUF)
+            (width, height),
+            pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
         display.fill(UTSA)
         font = pygame.font.Font(FONT_PATH, 26)  # ubuntu dependent
         text_surf, text_rect = text_objects("Welcome to driving simulation", font)
-        text_rect.center = ((args.width/2), (args.height/2))
+        text_rect.center = ((width/2), (height/2))
         display.blit(text_surf, text_rect)
-
-        button_action(display, (350, 950), (100, 50), ORANGE, 'Before')
-        button_action(display, (550, 950), (100, 50), ORANGE, 'Next')
+        bef_button = (width*.25, height*.85)
+        next_button = (width * .75, height * .85)
+        button_action(display, bef_button, (100, 50), ORANGE, 'Before')
+        button_action(display, next_button, (100, 50), ORANGE, 'Next')
 
         pygame.display.update()
         # time.sleep(5)
         # intro_control = False
         # clock.tick(5)
+
+def driver(args):
+    width = args.width
+    height = args.height
+    intro_screen(width, height)
+
 
 
 if __name__ == '__main__':
@@ -57,4 +64,4 @@ if __name__ == '__main__':
     pygame.init()
     pygame.font.init()
     # clock = pygame.time.Clock()
-    intro(args)
+    driver(args)

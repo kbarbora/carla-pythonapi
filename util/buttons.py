@@ -14,9 +14,9 @@ def text_objects(text, font, color):
 def button_action(display, position, dimensions, color, text, action=None):
     mouse = pygame.mouse.get_pos()
     click = pygame.mouse.get_pressed()
-    bright_color = [color[0]+30, color[1]+30, color[2]+30]
-    for i in range(3):
-        bright_color[i] = bright_color[i] if bright_color[i] < 255 else 255
+    bright_color = [(color[0]+30) % 256, (color[1]+30) % 256, (color[2]+30) % 256]
+    # for i in range(3):
+    #     bright_color[i] = bright_color[i] if bright_color[i] < 255 else 255
     button = (position[0], position[1], dimensions[0], dimensions[1])
     if button[0]+button[2] > mouse[0] > button[0] and\
             button[1]+button[3] > mouse[1] > button[1]:

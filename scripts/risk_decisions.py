@@ -149,7 +149,8 @@ def init():
     world_g = client.get_world()
     sp = carla.Map.get_spawn_points(world_g.get_map())
     counter = 0
-    ri = risk(world_g, spawn_point=sp[10])
+    sps = [sp[1], sp[20], sp[0]]
+    ri = risk(world_g, spawn_point=sps)
     risks = [ri]
     driver_g = get_driver()
     started = True
@@ -157,24 +158,71 @@ def init():
         # risk_bike_crossing(r)
         # risk_carlacola(r)
         # risk_tunnel(r)
-        risk_ped_park(r)
-        # print(control)
-        # r.add_pedestrian(control=control)
+        # risk_ped_park(r)
+        # risk_no_stop_cars(r)
+        risk_front_sculpture(r)
+        # for s in range(len(r.spawn_point)):
+        #     r.add_vehicle(spawn_point=s)
+        #     time.sleep(.1)
         # while started:
-        #
         #     dist = distance_from_driver(driver_g, r)
         #     print(dist)
         #     time.sleep(.1)
-        #     if int(dist) < 60:
+        #     if int(dist) < 65:
         #         print('YESSS')
-        #         r.start_pedestrian()
+        #         r.start_vehicle()
         #         started = False
-        #         time.sleep(5)
+        #         sp_index = 0
+        #         time.sleep(2)
+        #         while True:
+        #             time.sleep(4)
+        #             dist = distance_from_driver(driver_g, r)
+        #             r.add_vehicle(spawn_point=-1)
+        #             r.start_vehicle()
+        #             if int(dist) > 100:
+        #                 break
+
         # finally:
         #     r.destroy_vehicle()
 
 
-def risk_ped_park(r, threshold=40):
+def risk_front_sculpture(r, threshold=65):
+    for s in range(len(r.spawn_point)):
+        r.add_vehicle(spawn_point=s)
+        time.sleep(.1)
+        while True:
+            dist = distance_from_driver(driver_g, r)
+            print(dist)
+            time.sleep(.1)
+            if int(dist) < threshold:
+                print('-----------Front Sculpture activated')
+                r.start_vehicle()
+                time.sleep(2)
+                while True:
+                    time.sleep(4)
+                    dist = distance_from_driver(driver_g, r)
+                    r.add_vehicle(spawn_point=-1)
+                    r.start_vehicle()
+                    if int(dist) > threshold+20:
+                        return True
+
+
+def risk_no_stop_cars(r, threshold=40):
+    # mid = [sp[12], sp[14], sp[5], sp[9], sp[19], sp[18], sp[16]]
+    for s in range(len(r.spawn_point)):
+        r.add_vehicle(spawn_point=s)
+        time.sleep(.1)
+    while True:
+        dist = distance_from_driver(driver_g, r)
+        print(dist)
+        time.sleep(.1)
+        if int(dist) < threshold:
+            print("----------Non stop cars activated")
+            r.start_vehicle()
+            return True
+
+
+def risk_ped_park(r, threshold=50):
     control = carla.WalkerControl()
     control.speed = 3
     control.direction.x = 0
@@ -190,7 +238,7 @@ def risk_ped_park(r, threshold=40):
             time.sleep(2)
             r.add_pedestrian(control=control)
             r.start_pedestrian()
-            return
+            return True
 
 
 

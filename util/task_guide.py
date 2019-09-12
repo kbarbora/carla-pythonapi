@@ -200,7 +200,7 @@ def main():
         current = go_straight(debug, current, 15)
         current = make_right(debug, current)
         current = go_straight(debug, current, 11)
-        current = make_right(debug, current,6)
+        current = make_right(debug, current, 6)
         current = go_straight(debug, current, 5)
         current = change_lane(debug, current)
         current = go_straight(debug, current, 3)
