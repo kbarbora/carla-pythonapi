@@ -1,9 +1,25 @@
-import _thread
+# ==============================================================================
+# University of Texas at San Antonio
+#
+#   Author: Kevin Barba
+# ==============================================================================
 
+"""
+Models a vehicle in the driving simulation and functions
+
+Functions to model a vehicle in carla. Since vehicle is
+already defined by Carla in C++ code, this file does create a
+vehicle class, instead models and perform the functions need it
+to configure, spawn and destroy vehicles. Since in every instance
+of a driving simulation includes several vehicles (100+), where if I
+create a class, I have to hold a instance of the world (memory waste) in
+order to spawn them for each one.
+"""
+
+import _thread      # For testing purposes
 import carla
 import random
 import time
-
 
 vehicle_list = []
 

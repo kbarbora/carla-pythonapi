@@ -1,3 +1,19 @@
+####################################
+#University of Texas at San Antonio
+#
+# Author: Kevin Barba
+#
+####################################
+
+"""
+Introduction to the Carla driving simulation using PyGame
+
+Presents a welcome message at the entry point of the driving
+simulation, along with instructions and controls keys.
+Possible a survey is going to be included. It uses PyGame and buttons.py
+found in util directory.
+"""
+
 import time
 import pygame
 from pygame.draw import rect as Rect
@@ -14,9 +30,9 @@ from buttons import *
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREEN = (100, 255, 0)
-ORANGE = [241, 90, 34]
+ORANGE = [241, 90, 34]          # UTSA orange color
 BRIGHT_ORANGE = (230, 127, 90)
-UTSA = (12, 35, 64)
+UTSA = (12, 35, 64)             # UTSA dark blue color
 FONT_PATH = '../config/meta-normal.ttf'
 # BUTTON_FONT = pygame.font.Font(FONT_PATH, 16)
 

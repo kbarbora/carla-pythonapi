@@ -8,6 +8,25 @@
 # Allows controlling a vehicle with a keyboard. For a simpler and more
 # documented example, please take a look at tutorial.py.
 
+# ==============================================================================
+# University of Texas at San Antonio
+#
+#   Author: Kevin Barba and UAB
+#
+#   Changes made to the original version:
+#       -Change the camera view for the driver
+#       -Default to one spawn point (at line 174)
+#       -Default to one vehicle blueprint. audi tt (at line )
+#       -Modified on-screen information
+#       -Uses mph instead of km/h (by just doing the proper conversion)
+#       -Create a mode to create logs with the information given, not all
+#         of it used. Currently logs are created each second ( to be modified)
+#         and exported to logs directory with default name drive.csv
+#       -Others
+#
+#
+# ==============================================================================
+
 """
 Welcome to CARLA manual control with steering wheel Logitech G29.
 
@@ -48,7 +67,6 @@ except IndexError:
 import carla
 
 from carla import ColorConverter as cc
-
 import argparse
 import collections
 import datetime
@@ -57,13 +75,9 @@ import math
 import random
 import re
 import weakref
-
 if sys.version_info >= (3, 0):
-
     from configparser import ConfigParser
-
 else:
-
     from ConfigParser import RawConfigParser as ConfigParser
 
 try:
@@ -332,14 +346,14 @@ class DualControl(object):
         K1 = 1.0  # 0.55
         K2 = 1.6  # 1.6
         steerCmd = K1 * math.tan(0.78 * jsInputs[self._steer_idx])
-
+        # @TODO: Disable acceleration at the beginning of the trial
         throttleCmd = K2 + (2.05 * math.log10(
             -0.7 * jsInputs[self._throttle_idx] + 1.4) - 1.2) / 0.92
         if throttleCmd <= 0:
             throttleCmd = 0
         elif throttleCmd > 1:
             throttleCmd = 1
-
+        # @TODO: Disable brake at the beginning of the trial
         brakeCmd = 1.6 + (2.05 * math.log10(
             -0.7 * jsInputs[self._brake_idx] + 1.4) - 1.2) / 0.92
         if brakeCmd <= 0:
@@ -422,6 +436,7 @@ class HUD(object):
         if speed > sl:
             delta_sl = speed - sl
 
+        # @TODO: traffic light feature not working properly
         traffic_light = world.player.get_traffic_light_state()
         # print(traffic_light)
         if traffic_light == 'Red':
@@ -466,7 +481,7 @@ class HUD(object):
             '{:.2f},'.format(delta_sl) + \
             '{},'.format(encounter_red_light) + \
             '{},'.format(stopped_at_red_light) + \
-            self._notifications.text  # @todo Verify that notifications has not a ','
+            self._notifications.text  # @TODO Verify that notifications has not a ','
 
     # def write_driving_data(self, log, keep_writing=False):
     #     while True:
@@ -820,6 +835,7 @@ def game_loop(args, clock):
             pygame.display.flip()
 
     finally:
+        # @TODO: IO error due to synchonization
         if log is not None:
             log.close()
         if world is not None:

@@ -6,6 +6,19 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
+# ==============================================================================
+# University of Texas at San Antonio
+#
+#   Author: Kevin Barba and UAB
+# ==============================================================================
+
+"""
+Defines the route that the driver is supposed to follow.
+
+Defines the route that the driver is going to be following and utility
+functions to do so.
+"""
+
 import glob
 import os
 import random

@@ -1,4 +1,19 @@
 #!/usr/bin/python
+
+####################################
+#University of Texas at San Antonio
+#
+# Author: Kevin Barba
+#
+####################################
+
+"""
+Functions to log the data for the current participant
+
+Currently not in use
+"""
+
+
 import argparse
 import glob, os, sys, random, time, traceback
 sys.path.append('../carla/dist/carla-0.9.5-py3-linux-x86_64.egg')

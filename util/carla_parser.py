@@ -1,3 +1,21 @@
+####################################
+# University of Texas at San Antonio
+#           and
+# Universitat Autonoma de Barcelona
+#
+# Author: Kevin Barba and others
+#
+####################################
+
+"""
+General purpose parser for Carla
+
+Defines a general purpose parser for Carla driving simulation.
+It defines the server location (IP address, port), driving simulation
+defaults like display resolution, autopilot enables, vehicle filter
+username, default spawn vehicles and pedestrians, etc.
+"""
+
 import argparse
 
 

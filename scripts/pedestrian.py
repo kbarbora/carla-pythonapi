@@ -1,3 +1,24 @@
+####################################
+#University of Texas at San Antonio
+#
+# Author: Kevin Barba
+#
+####################################
+
+"""
+Models a pedestrians in the driving simulation and functions
+
+Functions to model a pedestrian in carla. Since pedestrian is
+already defined by Carla in C++ code, this file does create a
+pedestrian class, instead models and perform the functions need it
+to configure, spawn and destroy pedestrians. Since in every instance
+of a driving simulation includes several pedestrians (100+), where if I
+create a class, I have to hold a instance of the world (memory waste) in
+order to spawn them for each one.
+"""
+
+
+
 import carla
 import random
 import time

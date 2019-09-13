@@ -1,6 +1,25 @@
+# ==============================================================================
+# University of Texas at San Antonio
+#
+#   Author: Kevin Barba
+# ==============================================================================
+
+"""Represent situations where the driver has to make a decision.
+
+Within this python file, the risk class is defined. It models
+high risk situations where the driver has to make a decision,
+and react accordingly. Each risk object contains a instance
+of the actual world, the current map, the possible spawn points
+and the location of only one of the spawn points, in addition
+the vehicles and/or pedestrians that are going to be spawn during
+the activation of the risk and there respective controls.
+There are functions definingcomplete risk situations
+(functions named 'risk...').
+"""
+
+
 import _thread
 from datetime import datetime
-
 import carla
 import time
 import pedestrian

@@ -1,5 +1,16 @@
 #!/usr/bin/python3
+####################################
+#University of Texas at San Antonio
+#
+# Author: Kevin Barba
+#
+####################################
 
+"""
+Defines a game thread to be used in Carla
+
+Currently not in used.
+"""
 import threading
 import time
 import sys

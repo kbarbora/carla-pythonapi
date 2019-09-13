@@ -6,7 +6,16 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
-"""Spawn NPCs into the simulation"""
+# ==============================================================================
+# University of Texas at San Antonio
+#
+#   Author: Kevin Barba and UAB
+# ==============================================================================
+
+"""Spawn NPCs into the simulation
+
+Spawn NPCs into the simulation, when spawn with the command line argument
+"""
 
 import glob
 import os

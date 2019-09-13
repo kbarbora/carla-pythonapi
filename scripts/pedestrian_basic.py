@@ -1,3 +1,13 @@
+# ==============================================================================
+# University of Texas at San Antonio
+#
+#   Author: Kevin Barba
+# ==============================================================================
+
+"""
+Blueprint to implement the pedestrians
+"""
+
 import carla
 import random
 import time

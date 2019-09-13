@@ -1,3 +1,14 @@
+# ==============================================================================
+# University of Texas at San Antonio
+#
+#   Author: Kevin Barba
+# ==============================================================================
+
+"""
+Functions to draw the buttons using PyGame
+"""
+
+
 from pygame \
     import Color, draw, SRCALPHA, transform, \
     Rect, Surface, BLEND_RGBA_MAX, BLEND_RGBA_MIN

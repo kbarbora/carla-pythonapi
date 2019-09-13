@@ -1,3 +1,20 @@
+# ==============================================================================
+# University of Texas at San Antonio
+#
+#   Author: Kevin Barba and UAB
+# ==============================================================================
+
+"""Starts the driving simulation using the Logitech G29 steering wheel and pedals
+
+Start the driving simualtion using the steering wheel and the pedals as controls
+once the server is running and the script is run with the proper command line
+arguments. It uses an thread to spawn any pedestrians and/or vehicles if any.
+At the end, it destroys the pedestrians and vehicles created before exiting.
+It uses the 'manual_control_steeringwheel' script modified.
+
+"""
+
+
 import argparse
 import logging
 import os
@@ -6,9 +23,7 @@ import datetime
 import _thread
 import sys
 import time
-
 import pygame
-
 try:
     sys.path.append('../examples')
 except IndexError:
@@ -17,6 +32,7 @@ import manual_control_steeringwheel as ControlSW
 import spawn_npc as SpawnNPC
 import carla
 
+# @TODO: replace parser for general purpose parser
 def main():
 
     argparser = argparse.ArgumentParser(
