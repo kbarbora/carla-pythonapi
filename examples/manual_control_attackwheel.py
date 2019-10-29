@@ -249,7 +249,8 @@ class DualControl(object):
         self._handbrake_idx = int(
             self._parser.get('G29 Racing Wheel', 'handbrake'))
 
-    def parse_events(self, world, clock):
+    def parse_events(self, world, clock, attack):
+        steering, throttle, brake = 0, 0, 0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return True
@@ -308,11 +309,12 @@ class DualControl(object):
         if not self._autopilot_enabled:
             if isinstance(self._control, carla.VehicleControl):
                 self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time())
-                self._parse_vehicle_wheel()
+                steering, throttle, brake = self._parse_vehicle_wheel(attack)
                 self._control.reverse = self._control.gear < 0
             elif isinstance(self._control, carla.WalkerControl):
                 self._parse_walker_keys(pygame.key.get_pressed(), clock.get_time())
             world.player.apply_control(self._control)
+        return steering, throttle, brake
 
     def _parse_vehicle_keys(self, keys, milliseconds):
         self._control.throttle = 1.0 if keys[K_UP] or keys[K_w] else 0.0
@@ -328,7 +330,7 @@ class DualControl(object):
         self._control.brake = 1.0 if keys[K_DOWN] or keys[K_s] else 0.0
         self._control.hand_brake = keys[K_SPACE]
 
-    def _parse_vehicle_wheel(self, attack, attack_values):
+    def _parse_vehicle_wheel(self, attack):
         numAxes = self._joystick.get_numaxes()
         jsInputs = [float(self._joystick.get_axis(i)) for i in range(numAxes)]
         # print (jsInputs)
@@ -337,78 +339,47 @@ class DualControl(object):
 
         # Custom function to map range of inputs [1, -1] to outputs [0, 1] i.e 1 from inputs means nothing is pressed
         # For the steering, it seems fine as it is
+        K1 = 1.0  # 0.55
+        K2 = 1.6  # 1.6
+        K3 = 1.6
         if attack:
-            if attack_values[0] == 1:      # attacking steering
-                K1 = 1.0  # 0.55
-            elif attack_values[0] == 2:    # attacking throttle
-                K2 = 1.6  # 1.6
-            elif attack_values[0] == 3:    # attacking steering, throttle
-                K1 = 1.0  # 0.55
-                K2 = 1.6  # 1.6
-            elif attack_values[0] == 4:    # attacking brake
-                K3 = 1.6
-            elif attack_values[0] == 5:    # attacking steering, brake
-                K1 = 1.0  # 0.55
-                K3 = 1.6
-            elif attack_values[0] == 6:    # attacking throttle, brake
-                K2 = 1.6  # 1.6
-                K3 = 1.6
-            elif attack_values[0] == 7:    # attacking steering, throttle, brake
-                K1 = 1.0  # 0.55
-                K2 = 1.6  # 1.6
-                K3 = 1.6
+            steer = attack[0]
+            throttle = attack[1]
+            brake = attack[2]
+            print("executing Cyberattack!!!")
+            if steer != '0':      # attacking steering
+                delta = K1 * steer[1] / 100
+                exec("K1 = K1 " + steer[0] + " delta")
+            if throttle != '0':    # attacking throttle
+                delta = K2 * throttle[1] / 100
+                exec("K2 = K2 " + throttle[0] + " delta")
+            if brake != '0':    # attacking steering, throttle
+                delta = K3 * brake[1] / 100
+                exec("K3 = K3 " + brake[0] + " delta")
             else:
-                print("[Error] Attack value not identify " + str(attack_values[0]))
+                raise(Exception("[Error] Attack value not identified "))
+        steerCmd = K1 * math.tan(0.78 * jsInputs[self._steer_idx])
+        # @TODO: Disable acceleration at the beginning of the trial
+        throttleCmd = K2 + (2.05 * math.log10(
+            -0.7 * jsInputs[self._throttle_idx] + 1.4) - 1.2) / 0.92
+        if throttleCmd <= 0:
+            throttleCmd = 0
+        elif throttleCmd > 1:
+            throttleCmd = 1
+        # @TODO: Disable brake at the beginning of the trial
+        brakeCmd = K3 + (2.05 * math.log10(
+            -0.7 * jsInputs[self._brake_idx] + 1.4) - 1.2) / 0.92
+        if brakeCmd <= 0:
+            brakeCmd = 0
+        elif brakeCmd > 1:
+            brakeCmd = 1
 
-            steerCmd = K1 * math.tan(0.78 * jsInputs[self._steer_idx])
-            # @TODO: Disable acceleration at the beginning of the trial
-            throttleCmd = K2 + (2.05 * math.log10(
-                -0.7 * jsInputs[self._throttle_idx] + 1.4) - 1.2) / 0.92
-            if throttleCmd <= 0:
-                throttleCmd = 0
-            elif throttleCmd > 1:
-                throttleCmd = 1
-            # @TODO: Disable brake at the beginning of the trial
-            brakeCmd = K3 + (2.05 * math.log10(
-                -0.7 * jsInputs[self._brake_idx] + 1.4) - 1.2) / 0.92
-            if brakeCmd <= 0:
-                brakeCmd = 0
-            elif brakeCmd > 1:
-                brakeCmd = 1
-
-            self._control.steer = steerCmd
-            self._control.brake = brakeCmd
-            self._control.throttle = throttleCmd
-
-            #toggle = jsButtons[self._reverse_idx]
-
-            self._control.hand_brake = bool(jsButtons[self._handbrake_idx])
-        else:
-            K1 = 1.0  # 0.55
-            K2 = 1.6  # 1.6
-            steerCmd = K1 * math.tan(0.78 * jsInputs[self._steer_idx])
-            # @TODO: Disable acceleration at the beginning of the trial
-            throttleCmd = K2 + (2.05 * math.log10(
-                -0.7 * jsInputs[self._throttle_idx] + 1.4) - 1.2) / 0.92
-            if throttleCmd <= 0:
-                throttleCmd = 0
-            elif throttleCmd > 1:
-                throttleCmd = 1
-            # @TODO: Disable brake at the beginning of the trial
-            brakeCmd = 1.6 + (2.05 * math.log10(
-                -0.7 * jsInputs[self._brake_idx] + 1.4) - 1.2) / 0.92
-            if brakeCmd <= 0:
-                brakeCmd = 0
-            elif brakeCmd > 1:
-                brakeCmd = 1
-
-            self._control.steer = steerCmd
-            self._control.brake = brakeCmd
-            self._control.throttle = throttleCmd
-
-            # toggle = jsButtons[self._reverse_idx]
-
-            self._control.hand_brake = bool(jsButtons[self._handbrake_idx])
+        self._control.steer = steerCmd
+        self._control.brake = brakeCmd
+        self._control.throttle = throttleCmd
+        # toggle = jsButtons[self._reverse_idx]
+        self._control.hand_brake = bool(jsButtons[self._handbrake_idx])
+        return K1, K2, K3
 
     def _parse_walker_keys(self, keys, milliseconds):
         self._control.speed = 0.0
@@ -875,7 +846,7 @@ class CameraManager(object):
 # ==============================================================================
 
 
-def game_loop(args, clock):
+def game_loop(args, clock, attack):
     global hud
     global log
     pygame.init()
@@ -899,7 +870,9 @@ def game_loop(args, clock):
         thread.start_new_thread(hud.write_driving_data, (True,))
         while True:
             clock.tick_busy_loop(40)    # max fps in client
-            if controller.parse_events(world, clock):
+
+            # setting attack to 'False' will use default values
+            if controller.parse_events(world, clock, attack):
                 return
             # hud.write_driving_data(log)
             world.tick(clock)
@@ -926,7 +899,7 @@ def game_loop(args, clock):
 # ==============================================================================
 
 
-def start(args, clock):
+def start(args, clock, attack):
 
     args.width, args.height = [int(x) for x in args.res.split('x')]
 
@@ -937,7 +910,7 @@ def start(args, clock):
 
     print(__doc__)
     try:
-        game_loop(args, clock)
+        game_loop(args, clock, attack)
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
 

@@ -28,7 +28,6 @@ try:
     sys.path.append('../examples')
 except IndexError:
     pass
-import manual_control_steeringwheel as ControlSW
 import manual_control_attackwheel as ControlWheelAttack
 import spawn_npc as SpawnNPC
 import carla
@@ -78,37 +77,33 @@ def main():
         metavar='U',
         default=00,
         type=int,
-        help="username-driver identification number (00).")
+        help='username-driver identification number (00)')
     argparser.add_argument(
         '-n', '--number-of-vehicles',
         metavar='N',
         default=0,
         type=int,
-        help="number of vehicles (default: 10).")
+        help='number of vehicles (default: 10)')
     argparser.add_argument(
         '-w', '--number-of-walkers',
         metavar='W',
         default=0,
         type=int,
-        help="number of walkers (default: 50).")
+        help='number of walkers (default: 50)')
     argparser.add_argument(
         '--safe',
         action='store_true',
-        help="avoid spawning vehicles prone to accidents.")
+        help='avoid spawning vehicles prone to accidents')
     argparser.add_argument(
         '--filterv',
         metavar='PATTERN',
         default='vehicle.*',
-        help="vehicles filter (default: 'vehicle.*')")
+        help='vehicles filter (default: "vehicle.*")')
     argparser.add_argument(
         '--filterw',
         metavar='PATTERN',
         default='walker.pedestrian.*',
-        help="pedestrians filter (default: 'walker.pedestrian.*')")
-    argparser.add_argument(
-        '-c', '--cyberattack',
-        help="Enable the cyberattacks simulation. Follow by the filepath to the cyber attack values textfile."
-             "(default: './cyberattack_values.txt')")
+        help='pedestrians filter (default: "walker.pedestrian.*")')
     args = argparser.parse_args()
     vehicles_list = []
     walkers_list = []
@@ -117,12 +112,7 @@ def main():
         _thread.start_new_thread(SpawnNPC.main, (args, vehicles_list, walkers_list, all_id))
         # SpawnNPC.main(args)
         clock = pygame.time.Clock()
-        if args.cyberattack:
-            print("Attack mode!")
-            values = processes_attack_input(args.cyberattack)
-            ControlWheelAttack.start(args, clock, values)
-        else:
-            ControlSW.start(args, clock)
+        ControlWheelAttack.start(args, clock)
     finally:
         client = carla.Client(args.host, args.port)
         print('destroying %d vehicles' % len(vehicles_list))
@@ -134,19 +124,6 @@ def main():
 
         print('destroying %d walkers' % len(walkers_list))
         client.apply_batch([carla.command.DestroyActor(x) for x in all_id])
-
-
-def processes_attack_input(file='cyberattack.txt'):
-    attack = open(file, 'r').readlines()
-    if len(attack) != 5:
-        raise Exception("Cyberattack input file malformed.")
-    processed = []
-    for a in attack:
-        a = a.strip()
-        processed.append(a[a.index('=') + 1:])
-        if processed[-1] != '0' and ('+' in processed[-1] or '-' in processed[-1]):
-            processed[-1] = [processed[-1][0], processed[-1][1:]]
-    return processed
 
 
 if __name__ == '__main__':
