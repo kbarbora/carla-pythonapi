@@ -249,7 +249,7 @@ class DualControl(object):
         self._handbrake_idx = int(
             self._parser.get('G29 Racing Wheel', 'handbrake'))
 
-    def parse_events(self, world, clock, attack):
+    def parse_events(self, world, clock):
         steering, throttle, brake = 0, 0, 0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -309,12 +309,12 @@ class DualControl(object):
         if not self._autopilot_enabled:
             if isinstance(self._control, carla.VehicleControl):
                 self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time())
-                steering, throttle, brake = self._parse_vehicle_wheel(attack)
+                self._parse_vehicle_wheel()
                 self._control.reverse = self._control.gear < 0
             elif isinstance(self._control, carla.WalkerControl):
                 self._parse_walker_keys(pygame.key.get_pressed(), clock.get_time())
             world.player.apply_control(self._control)
-        return steering, throttle, brake
+        # return steering, throttle, brake
 
     def _parse_vehicle_keys(self, keys, milliseconds):
         self._control.throttle = 1.0 if keys[K_UP] or keys[K_w] else 0.0
@@ -330,7 +330,8 @@ class DualControl(object):
         self._control.brake = 1.0 if keys[K_DOWN] or keys[K_s] else 0.0
         self._control.hand_brake = keys[K_SPACE]
 
-    def _parse_vehicle_wheel(self, attack):
+    def _parse_vehicle_wheel(self):
+        global k_values, attack, attack_performed, attack_repetitions
         numAxes = self._joystick.get_numaxes()
         jsInputs = [float(self._joystick.get_axis(i)) for i in range(numAxes)]
         # print (jsInputs)
@@ -339,35 +340,38 @@ class DualControl(object):
 
         # Custom function to map range of inputs [1, -1] to outputs [0, 1] i.e 1 from inputs means nothing is pressed
         # For the steering, it seems fine as it is
-        K1 = 1.0  # 0.55
-        K2 = 1.6  # 1.6
-        K3 = 1.6
-        if attack:
-            steer = attack[0]
-            throttle = attack[1]
-            brake = attack[2]
+        if attack[0] > 0:         # under attack
+            steer = attack[1]
+            throttle = attack[2]
+            brake = attack[3]
             print("executing Cyberattack!!!")
             if steer != '0':      # attacking steering
-                delta = K1 * steer[1] / 100
-                exec("K1 = K1 " + steer[0] + " delta")
+                delta = k_values[0] * steer[1] / 100
+                exec("k_values[0] = k_values[0] " + steer[0] + " delta")
             if throttle != '0':    # attacking throttle
-                delta = K2 * throttle[1] / 100
-                exec("K2 = K2 " + throttle[0] + " delta")
+                delta = k_values[1] * throttle[1] / 100
+                exec("k_values[1] = k_values[1] " + throttle[0] + " delta")
             if brake != '0':    # attacking steering, throttle
-                delta = K3 * brake[1] / 100
-                exec("K3 = K3 " + brake[0] + " delta")
+                delta = k_values[2] * brake[1] / 100
+                exec("k_values[2] = k_values[2] " + brake[0] + " delta")
             else:
                 raise(Exception("[Error] Attack value not identified "))
-        steerCmd = K1 * math.tan(0.78 * jsInputs[self._steer_idx])
+            # attack_performed = 1
+            attack[0] = 0
+            attack_repetitions -= 1
+        elif attack[0] < 0:      # reset to default values
+            print("reset k-values")
+            k_values = 1.0, 1.6, 1.6
+        steerCmd = k_values[0] * math.tan(0.78 * jsInputs[self._steer_idx])
         # @TODO: Disable acceleration at the beginning of the trial
-        throttleCmd = K2 + (2.05 * math.log10(
+        throttleCmd = k_values[1] + (2.05 * math.log10(
             -0.7 * jsInputs[self._throttle_idx] + 1.4) - 1.2) / 0.92
         if throttleCmd <= 0:
             throttleCmd = 0
         elif throttleCmd > 1:
             throttleCmd = 1
         # @TODO: Disable brake at the beginning of the trial
-        brakeCmd = K3 + (2.05 * math.log10(
+        brakeCmd = k_values[2] + (2.05 * math.log10(
             -0.7 * jsInputs[self._brake_idx] + 1.4) - 1.2) / 0.92
         if brakeCmd <= 0:
             brakeCmd = 0
@@ -379,7 +383,8 @@ class DualControl(object):
         self._control.throttle = throttleCmd
         # toggle = jsButtons[self._reverse_idx]
         self._control.hand_brake = bool(jsButtons[self._handbrake_idx])
-        return K1, K2, K3
+        # return K1, K2, K3
+        return
 
     def _parse_walker_keys(self, keys, milliseconds):
         self._control.speed = 0.0
@@ -846,9 +851,15 @@ class CameraManager(object):
 # ==============================================================================
 
 
-def game_loop(args, clock, attack):
-    global hud
-    global log
+def game_loop(args, clock):
+    global hud, log, k_values, attack, attack_interval, attack_restablished, attack_repetitions
+
+    k_values = 1.0, 1.6, 1.6
+    # attack_performed = 0
+    attack_interval = attack[3]
+    attack_restablished = attack[4]
+    attack_repetitions = attack[5]
+
     pygame.init()
     pygame.font.init()
     world = None
@@ -871,10 +882,9 @@ def game_loop(args, clock, attack):
         while True:
             clock.tick_busy_loop(40)    # max fps in client
 
-            # setting attack to 'False' will use default values
+            # setting attack to -1 will use default values
             if controller.parse_events(world, clock, attack):
                 return
-            # hud.write_driving_data(log)
             world.tick(clock)
             world.render(display)
             pygame.display.flip()
@@ -888,19 +898,28 @@ def game_loop(args, clock, attack):
 
         pygame.quit()
 
-#
-# def get_hud():
-#     global hud
-#     return hud
-
 
 # ==============================================================================
 # -- main() --------------------------------------------------------------------
 # ==============================================================================
 
 
-def start(args, clock, attack):
+def attack_counter():
+    global restablished, attack_repetitions, attack, attack_interval
+    while True:
+        if attack_repetitions < 1:
+            time.sleep(restablished)
+            attack[0] = -1
+            print("Attack finished")
+            return
+        elif attack_repetitions > 0:
+            time.sleep(attack_interval)
+            attack[0] = 1
 
+
+def start(args, clock, attack_values):
+    global attack
+    attack = attack_values
     args.width, args.height = [int(x) for x in args.res.split('x')]
 
     log_level = logging.DEBUG if args.debug else logging.INFO
@@ -910,7 +929,7 @@ def start(args, clock, attack):
 
     print(__doc__)
     try:
-        game_loop(args, clock, attack)
+        game_loop(args, clock)
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
 

@@ -348,7 +348,7 @@ class DualControl(object):
             throttleCmd = 0
         elif throttleCmd > 1:
             throttleCmd = .5
-        print(throttleCmd)
+        # print(throttleCmd)
         # @TODO: Disable brake at the beginning of the trial
         brakeCmd = 1.6 + (2.05 * math.log10(
             -0.7 * jsInputs[self._brake_idx] + 1.4) - 1.2) / 0.92

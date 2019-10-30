@@ -107,6 +107,8 @@ def main():
         help="pedestrians filter (default: 'walker.pedestrian.*')")
     argparser.add_argument(
         '-c', '--cyberattack',
+        metavar='PATH_TO_ATTACK_FILE',
+        default='cyberattack.txt',
         help="Enable the cyberattacks simulation. Follow by the filepath to the cyber attack values textfile."
              "(default: './cyberattack_values.txt')")
     args = argparser.parse_args()
@@ -140,12 +142,13 @@ def processes_attack_input(file='cyberattack.txt'):
     attack = open(file, 'r').readlines()
     if len(attack) != 5:
         raise Exception("Cyberattack input file malformed.")
-    processed = []
+    processed = [0]
     for a in attack:
         a = a.strip()
         processed.append(a[a.index('=') + 1:])
         if processed[-1] != '0' and ('+' in processed[-1] or '-' in processed[-1]):
             processed[-1] = [processed[-1][0], processed[-1][1:]]
+    print(processed)
     return processed
 
 
