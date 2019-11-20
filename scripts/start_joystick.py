@@ -86,6 +86,12 @@ def main():
         type=int,
         help="number of vehicles (default: 10).")
     argparser.add_argument(
+        '-d', '--data-interval',
+        metavar='D',
+        default=.1,
+        type=float,
+        help="the interval of data logging (default: 0.1).")
+    argparser.add_argument(
         '-w', '--number-of-walkers',
         metavar='W',
         default=0,
@@ -140,9 +146,9 @@ def main():
 
 def processes_attack_input(file='cyberattack.txt'):
     attack = open(file, 'r').readlines()
-    if len(attack) != 5:
+    if len(attack) != 6:
         raise Exception("Cyberattack input file malformed.")
-    processed = [0]
+    processed = []
     for a in attack:
         a = a.strip()
         processed.append(a[a.index('=') + 1:])

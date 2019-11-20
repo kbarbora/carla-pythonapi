@@ -331,7 +331,7 @@ class DualControl(object):
         self._control.hand_brake = keys[K_SPACE]
 
     def _parse_vehicle_wheel(self):
-        global k_values, attack, attack_performed, attack_repetitions
+        global k_values, attack, attack_performed, attack_repetitions, attack_interval
         numAxes = self._joystick.get_numaxes()
         jsInputs = [float(self._joystick.get_axis(i)) for i in range(numAxes)]
         # print (jsInputs)
@@ -341,27 +341,30 @@ class DualControl(object):
         # Custom function to map range of inputs [1, -1] to outputs [0, 1] i.e 1 from inputs means nothing is pressed
         # For the steering, it seems fine as it is
         if attack[0] > 0:         # under attack
-            steer = attack[1]
-            throttle = attack[2]
-            brake = attack[3]
+            steer = attack[0]
+            throttle = attack[1]
+            brake = attack[2]
             print("executing Cyberattack!!!")
+            if attack_interval != '0':
+                while
             if steer != '0':      # attacking steering
-                delta = k_values[0] * steer[1] / 100
+                delta = k_values[0] * int(steer[1]) / 100
                 exec("k_values[0] = k_values[0] " + steer[0] + " delta")
             if throttle != '0':    # attacking throttle
-                delta = k_values[1] * throttle[1] / 100
+                delta = k_values[1] * int(throttle[1]) / 100
                 exec("k_values[1] = k_values[1] " + throttle[0] + " delta")
             if brake != '0':    # attacking steering, throttle
-                delta = k_values[2] * brake[1] / 100
+                print(str(k_values[2]) + ' brake' + brake)
+                delta = k_values[2] * int(brake[1]) / 100
                 exec("k_values[2] = k_values[2] " + brake[0] + " delta")
             else:
                 raise(Exception("[Error] Attack value not identified "))
-            # attack_performed = 1
-            attack[0] = 0
+            attack_performed = 1
             attack_repetitions -= 1
         elif attack[0] < 0:      # reset to default values
             print("reset k-values")
-            k_values = 1.0, 1.6, 1.6
+            k_values = [1.0, 1.6, 1.6]
+            attack_performed = 0
         steerCmd = k_values[0] * math.tan(0.78 * jsInputs[self._steer_idx])
         # @TODO: Disable acceleration at the beginning of the trial
         throttleCmd = k_values[1] + (2.05 * math.log10(
@@ -539,13 +542,13 @@ class HUD(object):
     #     return
 
     def write_driving_data(self, keep_writing=False):
-        global log
+        global log, data_interval
         counter = -1
         while True:
             if counter > 0:
                 log.write('{},{}\n'.format(counter, self.log_data))
             # log.write(str(counter) +',' +self.log_data + '\n')
-            time.sleep(.1)   # log data interval
+            time.sleep(data_interval)   # log data interval
             counter += 1
             if not keep_writing:
                 break
@@ -828,7 +831,7 @@ class CameraManager(object):
             lidar_data = np.array(points[:, :2])
             lidar_data *= min(self.hud.dim) / 100.0
             lidar_data += (0.5 * self.hud.dim[0], 0.5 * self.hud.dim[1])
-            lidar_data = np.fabs(lidar_data) # pylint: disable=E1111
+            lidar_data = np.fabs(lidar_data)     # pylint: disable=E1111
             lidar_data = lidar_data.astype(np.int32)
             lidar_data = np.reshape(lidar_data, (-1, 2))
             lidar_img_size = (self.hud.dim[0], self.hud.dim[1], 3)
@@ -854,11 +857,12 @@ class CameraManager(object):
 def game_loop(args, clock):
     global hud, log, k_values, attack, attack_interval, attack_restablished, attack_repetitions
 
-    k_values = 1.0, 1.6, 1.6
+    k_values = [1.0, 1.6, 1.6]
     # attack_performed = 0
     attack_interval = attack[3]
-    attack_restablished = attack[4]
-    attack_repetitions = attack[5]
+    attack_inital = attack[4]
+    attack_restablished = attack[5]
+    attack_repetitions = attack[6]
 
     pygame.init()
     pygame.font.init()
@@ -879,11 +883,12 @@ def game_loop(args, clock):
         controller = DualControl(world, args.autopilot)
         time.sleep(1.5)
         thread.start_new_thread(hud.write_driving_data, (True,))
+
+        # ---Main Loop---
         while True:
             clock.tick_busy_loop(40)    # max fps in client
 
-            # setting attack to -1 will use default values
-            if controller.parse_events(world, clock, attack):
+            if controller.parse_events(world, clock):
                 return
             world.tick(clock)
             world.render(display)
@@ -897,11 +902,6 @@ def game_loop(args, clock):
             world.destroy()
 
         pygame.quit()
-
-
-# ==============================================================================
-# -- main() --------------------------------------------------------------------
-# ==============================================================================
 
 
 def attack_counter():
@@ -918,7 +918,10 @@ def attack_counter():
 
 
 def start(args, clock, attack_values):
-    global attack
+    global attack, data_interval, freq_data
+
+    data_interval = args.data_interval
+    freq_data = 1 / data_interval
     attack = attack_values
     args.width, args.height = [int(x) for x in args.res.split('x')]
 

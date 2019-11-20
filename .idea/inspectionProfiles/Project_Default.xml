@@ -20,6 +20,7 @@
       <option name="ignoredErrors">
         <list>
           <option value="E702" />
+          <option value="E116" />
         </list>
       </option>
     </inspection_tool>
@@ -32,6 +33,8 @@
           <option value="scripts.introduction.round_rect" />
           <option value="carla_parser" />
           <option value="scripts.introduction.filledRoundedRect" />
+          <option value="examples.manual_control_attackwheel.ConfigParser" />
+          <option value="thread" />
         </list>
       </option>
     </inspection_tool>
