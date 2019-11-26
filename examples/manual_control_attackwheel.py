@@ -331,7 +331,7 @@ class DualControl(object):
         self._control.hand_brake = keys[K_SPACE]
 
     def _parse_vehicle_wheel(self):
-        global k_values, attack, attack_performed, attack_repetitions, attack_interval
+        global k_values, attack
         numAxes = self._joystick.get_numaxes()
         jsInputs = [float(self._joystick.get_axis(i)) for i in range(numAxes)]
         # print (jsInputs)
@@ -340,28 +340,32 @@ class DualControl(object):
 
         # Custom function to map range of inputs [1, -1] to outputs [0, 1] i.e 1 from inputs means nothing is pressed
         # For the steering, it seems fine as it is
-        if attack[0] > 0:         # under attack
-            steer = attack[0]
-            throttle = attack[1]
-            brake = attack[2]
+        if attack['values'][0] > 0:         # under attack
+            steer = attack['values'][1]
+            throttle = attack['values'][2]
+            brake = attack['values'][3]
+            modified_values = False
             print("executing Cyberattack!!!")
-            if attack_interval != '0':
-                while
+            # if attack_interval != '0':
+            #     while
             if steer != '0':      # attacking steering
                 delta = k_values[0] * int(steer[1]) / 100
                 exec("k_values[0] = k_values[0] " + steer[0] + " delta")
+                modified_values = True
             if throttle != '0':    # attacking throttle
                 delta = k_values[1] * int(throttle[1]) / 100
                 exec("k_values[1] = k_values[1] " + throttle[0] + " delta")
+                modified_values = True
             if brake != '0':    # attacking steering, throttle
                 print(str(k_values[2]) + ' brake' + brake)
                 delta = k_values[2] * int(brake[1]) / 100
                 exec("k_values[2] = k_values[2] " + brake[0] + " delta")
-            else:
+                modified_values = True
+            if not modified_values:
                 raise(Exception("[Error] Attack value not identified "))
             attack_performed = 1
-            attack_repetitions -= 1
-        elif attack[0] < 0:      # reset to default values
+            attack['repetitions'] -= 1
+        elif attack['values'][0] < 0:      # reset to default values
             print("reset k-values")
             k_values = [1.0, 1.6, 1.6]
             attack_performed = 0
@@ -855,14 +859,14 @@ class CameraManager(object):
 
 
 def game_loop(args, clock):
-    global hud, log, k_values, attack, attack_interval, attack_restablished, attack_repetitions
+    global hud, log, k_values, attack
 
     k_values = [1.0, 1.6, 1.6]
     # attack_performed = 0
-    attack_interval = attack[3]
-    attack_inital = attack[4]
-    attack_restablished = attack[5]
-    attack_repetitions = attack[6]
+    attack['interval'] = attack['values'][3]
+    attack['inital'] = attack['values'][4]
+    attack['restablished'] = attack['values'][5]
+    attack['repetitions'] = attack['values'][6]
 
     pygame.init()
     pygame.font.init()
@@ -905,16 +909,16 @@ def game_loop(args, clock):
 
 
 def attack_counter():
-    global restablished, attack_repetitions, attack, attack_interval
+    global attack
     while True:
-        if attack_repetitions < 1:
-            time.sleep(restablished)
-            attack[0] = -1
+        if attack['repetitions'] < 1:
+            time.sleep(attack['restablished'])
+            attack['values'][0] = -1
             print("Attack finished")
             return
-        elif attack_repetitions > 0:
-            time.sleep(attack_interval)
-            attack[0] = 1
+        elif attack['repetitions'] > 0:
+            time.sleep(attack['interval'])
+            attack['values'][0] = 1
 
 
 def start(args, clock, attack_values):
@@ -922,7 +926,7 @@ def start(args, clock, attack_values):
 
     data_interval = args.data_interval
     freq_data = 1 / data_interval
-    attack = attack_values
+    attack = {'values': attack_values}
     args.width, args.height = [int(x) for x in args.res.split('x')]
 
     log_level = logging.DEBUG if args.debug else logging.INFO

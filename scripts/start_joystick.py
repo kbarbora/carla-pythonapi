@@ -114,7 +114,7 @@ def main():
     argparser.add_argument(
         '-c', '--cyberattack',
         metavar='PATH_TO_ATTACK_FILE',
-        default='cyberattack.txt',
+        # default='cyberattack.txt',
         help="Enable the cyberattacks simulation. Follow by the filepath to the cyber attack values textfile."
              "(default: './cyberattack_values.txt')")
     args = argparser.parse_args()
@@ -146,9 +146,9 @@ def main():
 
 def processes_attack_input(file='cyberattack.txt'):
     attack = open(file, 'r').readlines()
-    if len(attack) != 6:
+    if len(attack) != 7:
         raise Exception("Cyberattack input file malformed.")
-    processed = []
+    processed = [1]
     for a in attack:
         a = a.strip()
         processed.append(a[a.index('=') + 1:])
