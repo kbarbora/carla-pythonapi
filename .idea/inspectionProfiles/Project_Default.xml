@@ -35,6 +35,7 @@
           <option value="scripts.introduction.filledRoundedRect" />
           <option value="examples.manual_control_attackwheel.ConfigParser" />
           <option value="thread" />
+          <option value="examples.manual_control_steeringwheel.RestartTask" />
         </list>
       </option>
     </inspection_tool>

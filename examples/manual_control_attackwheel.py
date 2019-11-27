@@ -44,11 +44,14 @@ import sys
 import stat
 import time
 
+
+
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+    sys.path.append('../scripts')
 except IndexError:
     pass
 
@@ -59,7 +62,7 @@ except IndexError:
 
 
 import carla
-
+from carla_exception import *
 from carla import ColorConverter as cc
 import argparse
 import collections
@@ -256,7 +259,7 @@ class DualControl(object):
                 return True
             elif event.type == pygame.JOYBUTTONDOWN:
                 if event.button == 0:
-                    world.restart()
+                    raise RestartTask
                 elif event.button == 1:
                     world.hud.toggle_info()
                 elif event.button == 2:
@@ -547,10 +550,14 @@ class HUD(object):
 
     def write_driving_data(self, keep_writing=False):
         global log, data_interval
-        counter = -1
+        counter = 0
         while True:
             if counter > 0:
-                log.write('{},{}\n'.format(counter, self.log_data))
+                try:
+                    log.write('{},{}\n'.format(counter, self.log_data))
+                except Exception:
+                    log.write('{},{}\n'.format(counter, self.log_data))
+                    log.close()
             # log.write(str(counter) +',' +self.log_data + '\n')
             time.sleep(data_interval)   # log data interval
             counter += 1
@@ -899,9 +906,7 @@ def game_loop(args, clock):
             pygame.display.flip()
 
     finally:
-        # @TODO: IO error due to synchonization
-        if log is not None:
-            log.close()
+        time.sleep(1)       # delay to allow thread to finish first
         if world is not None:
             world.destroy()
 
@@ -937,6 +942,10 @@ def start(args, clock, attack_values):
     print(__doc__)
     try:
         game_loop(args, clock)
+    except RestartTask:
+        print("Restarting task")
+        game_loop(args, clock)
+
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
 

@@ -49,6 +49,7 @@ try:
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+    sys.path.append('../scripts')
 except IndexError:
     pass
 
@@ -59,7 +60,7 @@ except IndexError:
 
 
 import carla
-
+from carla_exception import *
 from carla import ColorConverter as cc
 import argparse
 import collections
@@ -116,7 +117,7 @@ except ImportError:
 # -- Global functions ----------------------------------------------------------
 # ==============================================================================
 speed = 0
-
+final_loc = carla.Location(x=187, y=55)
 def find_weather_presets():
     rgx = re.compile('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)')
     name = lambda x: ' '.join(m.group(0) for m in rgx.finditer(x))
@@ -254,8 +255,15 @@ class DualControl(object):
             if event.type == pygame.QUIT:
                 return True
             elif event.type == pygame.JOYBUTTONDOWN:
-                if event.button == 0:
-                    world.restart()
+                print("Button pressed in Joystick ->" + str(event.button))
+                if event.button == 7:
+                    raise RestartTask
+                if event.button == 6:
+                    current_loc = world.player.get_transform().location
+                    print(current_loc)
+                    if current_loc.x < 190 and (final_loc.y-15) < current_loc.y < (final_loc.y):
+                        print("Next task")
+                        raise RestartTask
                 elif event.button == 1:
                     world.hud.toggle_info()
                 elif event.button == 2:
@@ -519,10 +527,14 @@ class HUD(object):
 
     def write_driving_data(self, keep_writing=False):
         global log
-        counter = -1
+        counter = 0
         while True:
             if counter > 0:
-                log.write('{},{}\n'.format(counter, self.log_data))
+                try:
+                    log.write('{},{}\n'.format(counter, self.log_data))
+                except Exception:
+                    log.write('{},{}\n'.format(counter, self.log_data))
+                    log.close()
             # log.write(str(counter) +',' +self.log_data + '\n')
             time.sleep(.1)   # log data interval
             counter += 1
@@ -836,13 +848,13 @@ def game_loop(args, clock):
     pygame.init()
     pygame.font.init()
     world = None
+    
 
     try:
         client = carla.Client(args.host, args.port)
         client.set_timeout(2.0)     # timeout in case the client loses connection
 
         log = create_logfile(args)
-
         display = pygame.display.set_mode(
             (args.width, args.height),
             pygame.HWSURFACE | pygame.DOUBLEBUF)
@@ -862,9 +874,7 @@ def game_loop(args, clock):
             pygame.display.flip()
 
     finally:
-        # @TODO: IO error due to synchonization
-        if log is not None:
-            log.close()
+        time.sleep(1)       # delay to allow threads to finish first
         if world is not None:
             world.destroy()
 
@@ -892,6 +902,11 @@ def start(args, clock):
 
     print(__doc__)
     try:
+        game_loop(args, clock)
+    except RestartTask:
+        print('________________________________________________________'
+              '________________________________________________________')
+        print("Restarting task")
         game_loop(args, clock)
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')

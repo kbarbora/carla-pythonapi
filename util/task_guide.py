@@ -40,13 +40,12 @@ import time
 
 green = carla.Color(100, 255, 0)
 blue = carla.Color(0, 0, 255)
-tick_time = 0.05
-trail_life_time = 10
+tick_time = 0.01
 waypoint_separation = 4
-lifetime = -1
+lifetime = 5
 
 
-def go_straight(debug, current, steps=1, tick_time=0.2):
+def go_straight(debug, current, steps=1):
     for i in range(0, steps):
         # print(list(current.next(waypoint_separation)))
         next_w = list(current.next(waypoint_separation))[0]
@@ -214,9 +213,13 @@ def main():
         current = make_right(debug, current)
         current = go_straight(debug, current, 11)
         current = make_right(debug, current, 6)
-        current = go_straight(debug, current, 5)
+        current = go_straight(debug, current, 8)
         current = change_lane(debug, current)
-        current = go_straight(debug, current, 3)
+        debug.draw_line(
+            current.transform.location + carla.Location(z=0.25),
+            current.transform.location + carla.Location(y=-10, z=0.25),
+            thickness=0.1, color=green, life_time=lifetime, persistent_lines=False)
+        # current = go_straight(debug, current, 3)
 
     finally:
         pass

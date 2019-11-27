@@ -178,7 +178,7 @@ def init():
         # risk_ped_park(r)
         # risk_no_stop_cars(r)
         # risk_front_sculpture(r)
-        risk_traffic_jam(r)
+        return risk_traffic_jam(r)
         # for s in range(len(r.spawn_point)):
         #     r.add_vehicle(spawn_point=s)
         #     time.sleep(.1)
