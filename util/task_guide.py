@@ -115,6 +115,14 @@ def draw_waypoint_info(debug, w, lt=5):
     debug.draw_string(w_loc + carla.Location(z=-.5), str(w.lane_change), False, lt=lt)
 
 
+def draw_arrow(debug, current):
+    loc = current.transform.location
+    debug.draw_line(
+        loc + carla.Location(z=0.25),
+        loc + carla.Location(y=-10, z=0.25),
+        thickness=0.1, color=green, life_time=lifetime, persistent_lines=False)
+
+
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument(

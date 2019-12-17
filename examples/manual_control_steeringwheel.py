@@ -61,8 +61,8 @@ except IndexError:
 
 import carla
 from carla_exception import *
+import start_joystick
 from carla import ColorConverter as cc
-import argparse
 import collections
 import datetime
 import logging
@@ -170,7 +170,7 @@ class World(object):
             actor = self.world.try_spawn_actor(blueprint, spawn_point)
         while self.player is None:
             spawn_points = self.world.get_map().get_spawn_points()
-            spawn_point = spawn_points[22] if spawn_points else carla.Transform()
+            spawn_point = spawn_points[123] if spawn_points else carla.Transform()
             # spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         # Set up the sensors.
@@ -263,7 +263,7 @@ class DualControl(object):
                     print(current_loc)
                     if current_loc.x < 190 and (final_loc.y-15) < current_loc.y < (final_loc.y):
                         print("Next task")
-                        raise RestartTask
+                        raise NextTask
                 elif event.button == 1:
                     world.hud.toggle_info()
                 elif event.button == 2:
@@ -315,26 +315,26 @@ class DualControl(object):
 
         if not self._autopilot_enabled:
             if isinstance(self._control, carla.VehicleControl):
-                self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time())
+                # self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time())
                 self._parse_vehicle_wheel()
                 self._control.reverse = self._control.gear < 0
-            elif isinstance(self._control, carla.WalkerControl):
-                self._parse_walker_keys(pygame.key.get_pressed(), clock.get_time())
+            # elif isinstance(self._control, carla.WalkerControl):
+            #     self._parse_walker_keys(pygame.key.get_pressed(), clock.get_time())
             world.player.apply_control(self._control)
 
-    def _parse_vehicle_keys(self, keys, milliseconds):
-        self._control.throttle = 1.0 if keys[K_UP] or keys[K_w] else 0.0
-        steer_increment = 5e-4 * milliseconds
-        if keys[K_LEFT] or keys[K_a]:
-            self._steer_cache -= steer_increment
-        elif keys[K_RIGHT] or keys[K_d]:
-            self._steer_cache += steer_increment
-        else:
-            self._steer_cache = 0.0
-        self._steer_cache = min(0.7, max(-0.7, self._steer_cache))
-        self._control.steer = round(self._steer_cache, 1)
-        self._control.brake = 1.0 if keys[K_DOWN] or keys[K_s] else 0.0
-        self._control.hand_brake = keys[K_SPACE]
+    # def _parse_vehicle_keys(self, keys, milliseconds):
+    #     self._control.throttle = 1.0 if keys[K_UP] or keys[K_w] else 0.0
+    #     steer_increment = 5e-4 * milliseconds
+    #     if keys[K_LEFT] or keys[K_a]:
+    #         self._steer_cache -= steer_increment
+    #     elif keys[K_RIGHT] or keys[K_d]:
+    #         self._steer_cache += steer_increment
+    #     else:
+    #         self._steer_cache = 0.0
+    #     self._steer_cache = min(0.7, max(-0.7, self._steer_cache))
+    #     self._control.steer = round(self._steer_cache, 1)
+    #     self._control.brake = 1.0 if keys[K_DOWN] or keys[K_s] else 0.0
+    #     self._control.hand_brake = keys[K_SPACE]
 
     def _parse_vehicle_wheel(self):
         numAxes = self._joystick.get_numaxes()
@@ -373,21 +373,21 @@ class DualControl(object):
 
         self._control.hand_brake = bool(jsButtons[self._handbrake_idx])
 
-    def _parse_walker_keys(self, keys, milliseconds):
-        self._control.speed = 0.0
-        if keys[K_DOWN] or keys[K_s]:
-            self._control.speed = 0.0
-        if keys[K_LEFT] or keys[K_a]:
-            self._control.speed = .01
-            self._rotation.yaw -= 0.08 * milliseconds
-        if keys[K_RIGHT] or keys[K_d]:
-            self._control.speed = .01
-            self._rotation.yaw += 0.08 * milliseconds
-        if keys[K_UP] or keys[K_w]:
-            self._control.speed = 5.556 if pygame.key.get_mods() & KMOD_SHIFT else 2.778
-        self._control.jump = keys[K_SPACE]
-        self._rotation.yaw = round(self._rotation.yaw, 1)
-        self._control.direction = self._rotation.get_forward_vector()
+    # def _parse_walker_keys(self, keys, milliseconds):
+    #     self._control.speed = 0.0
+    #     if keys[K_DOWN] or keys[K_s]:
+    #         self._control.speed = 0.0
+    #     if keys[K_LEFT] or keys[K_a]:
+    #         self._control.speed = .01
+    #         self._rotation.yaw -= 0.08 * milliseconds
+    #     if keys[K_RIGHT] or keys[K_d]:
+    #         self._control.speed = .01
+    #         self._rotation.yaw += 0.08 * milliseconds
+    #     if keys[K_UP] or keys[K_w]:
+    #         self._control.speed = 5.556 if pygame.key.get_mods() & KMOD_SHIFT else 2.778
+    #     self._control.jump = keys[K_SPACE]
+    #     self._rotation.yaw = round(self._rotation.yaw, 1)
+    #     self._control.direction = self._rotation.get_forward_vector()
 
     @staticmethod
     def _is_quit_shortcut(key):
@@ -447,7 +447,7 @@ class HUD(object):
             encounter_red_light = True
             stopped_at_red_light = True if speed <= 1 else False
             print("RED LIGHT")
-            print('Stoped: '+stopped_at_red_light)
+            print('Stoped: ' + str(stopped_at_red_light))
         else:
             encounter_red_light = False
             stopped_at_red_light = False
@@ -516,14 +516,6 @@ class HUD(object):
             ',' + drag_coefficient + \
             ',' + center_of_mass + \
             ',' + text  # @TODO Verify that notifications has not a ','
-
-    # def write_driving_data(self, log, keep_writing=False):
-    #     while True:
-    #         log.write(self.log_data + '\n')
-    #         time.sleep(1)
-    #         if not keep_writing:
-    #             break
-    #     return
 
     def write_driving_data(self, keep_writing=False):
         global log
@@ -768,8 +760,8 @@ class CameraManager(object):
             if item[0].startswith('sensor.camera'):
                 bp.set_attribute('image_size_x', str(hud.dim[0]))
                 bp.set_attribute('image_size_y', str(hud.dim[1]))
-            elif item[0].startswith('sensor.lidar'):
-                bp.set_attribute('range', '5000')
+            # elif item[0].startswith('sensor.lidar'):
+            #     bp.set_attribute('range', '5000')
             item.append(bp)
         self.index = None
 
@@ -843,8 +835,15 @@ class CameraManager(object):
 
 
 def game_loop(args, clock):
-    global hud
-    global log
+    global hud, log, k_values, attack
+
+    k_values = [1.0, 1.6, 1.6]
+    # attack_performed = 0
+    attack['interval'] = attack['values'][3]
+    attack['inital'] = attack['values'][4]
+    attack['restablished'] = attack['values'][5]
+    attack['repetitions'] = attack['values'][6]
+
     pygame.init()
     pygame.font.init()
     world = None
@@ -891,8 +890,12 @@ def game_loop(args, clock):
 # ==============================================================================
 
 
-def start(args, clock):
+def start(args, clock, attack_values):
+    global attack, data_interval, freq_data
 
+    data_interval = args.data_interval
+    freq_data = 1 / data_interval
+    attack = {'values': attack_values}
     args.width, args.height = [int(x) for x in args.res.split('x')]
 
     log_level = logging.DEBUG if args.debug else logging.INFO
@@ -908,6 +911,16 @@ def start(args, clock):
               '________________________________________________________')
         print("Restarting task")
         game_loop(args, clock)
+    except NextTask:
+        print('________________________________________________________'
+              '________________________________________________________')
+        args.walkers = 50   # for testing purposes
+        args.number_of_vehicles = 50    # need to add spawn points!!!
+        args.tasklevel = 1
+        start_joystick.main(False, args)
+    except LastTask:
+        print('________________________________________________________'
+              '________________________________________________________')
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
 
@@ -928,6 +941,18 @@ def create_logfile(args):
               'Red Light,Stopped RL,Max RPM, MoI, DRFT, DRZTCE, DRZTCD, Final Ratio,' +
               'Mass,Drag,MassCenter,Notifications\n')
     return log
+
+def attack_counter():
+    global attack
+    while True:
+        if attack['repetitions'] < 1:
+            time.sleep(attack['restablished'])
+            attack['values'][0] = -1
+            print("Attack finished")
+            return
+        elif attack['repetitions'] > 0:
+            time.sleep(attack['interval'])
+            attack['values'][0] = 1
 
 
 def format_logname(args):

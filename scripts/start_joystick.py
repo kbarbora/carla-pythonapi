@@ -33,9 +33,44 @@ import manual_control_attackwheel as ControlWheelAttack
 import spawn_npc as SpawnNPC
 import carla
 
-# @TODO: replace parser for general purpose parser
-def main():
 
+# @TODO: replace parser for general purpose parser
+def main(parse=True, pre_parsed=False):
+
+    if parse:
+        args = parser()
+    else:
+        if not pre_parsed:
+            raise Exception
+        args = pre_parsed
+
+    vehicles_list = []
+    walkers_list = []
+    all_id = []
+    try:
+        _thread.start_new_thread(SpawnNPC.main, (args, vehicles_list, walkers_list, all_id))
+        # SpawnNPC.main(args)
+        clock = pygame.time.Clock()
+        if args.cyberattack:
+            print("Attack mode!")
+            values = processes_attack_input(args.cyberattack)
+            ControlWheelAttack.start(args, clock, values)
+        else:
+            ControlSW.start(args, clock)
+    finally:
+        client = carla.Client(args.host, args.port)
+        print('destroying %d vehicles' % len(vehicles_list))
+        client.apply_batch([carla.command.DestroyActor(x) for x in vehicles_list])
+
+        # stop walker controllers (list is [controler, actor, controller, actor ...])
+        for i in range(0, len(all_id), 2):
+            client.get_world().get_actors(all_id)[i].stop()
+
+        print('destroying %d walkers' % len(walkers_list))
+        client.apply_batch([carla.command.DestroyActor(x) for x in all_id])
+
+
+def parser():
     argparser = argparse.ArgumentParser(
         description='CARLA Manual Control Client')
     argparser.add_argument(
@@ -88,11 +123,11 @@ def main():
     argparser.add_argument(
         '-d', '--data-interval',
         metavar='D',
-        default=.1,
+        default=.05,
         type=float,
-        help="the interval of data logging (default: 0.1).")
+        help="the interval of data logging (default: 0.05).")
     argparser.add_argument(
-        '-w', '--number-of-walkers',
+        '-w', '--walkers',
         metavar='W',
         default=0,
         type=int,
@@ -117,31 +152,13 @@ def main():
         # default='cyberattack.txt',
         help="Enable the cyberattacks simulation. Follow by the filepath to the cyber attack values textfile."
              "(default: './cyberattack_values.txt')")
-    args = argparser.parse_args()
-    vehicles_list = []
-    walkers_list = []
-    all_id = []
-    try:
-        _thread.start_new_thread(SpawnNPC.main, (args, vehicles_list, walkers_list, all_id))
-        # SpawnNPC.main(args)
-        clock = pygame.time.Clock()
-        if args.cyberattack:
-            print("Attack mode!")
-            values = processes_attack_input(args.cyberattack)
-            ControlWheelAttack.start(args, clock, values)
-        else:
-            ControlSW.start(args, clock)
-    finally:
-        client = carla.Client(args.host, args.port)
-        print('destroying %d vehicles' % len(vehicles_list))
-        client.apply_batch([carla.command.DestroyActor(x) for x in vehicles_list])
-
-        # stop walker controllers (list is [controler, actor, controller, actor ...])
-        for i in range(0, len(all_id), 2):
-            client.get_world().get_actors(all_id)[i].stop()
-
-        print('destroying %d walkers' % len(walkers_list))
-        client.apply_batch([carla.command.DestroyActor(x) for x in all_id])
+    argparser.add_argument(
+        '-t', '--tasklevel',
+        metavar='NUMBER_OF_TASK',
+        default=0,
+        type=int,
+        help="Start at the desired task. (default 0).")
+    return argparser.parse_args()
 
 
 def processes_attack_input(file='cyberattack.txt'):

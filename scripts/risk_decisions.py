@@ -204,6 +204,7 @@ def init():
 
 
 def risk_traffic_jam(r, threshold=60):
+    # sp 10, 8, 6, 10, 7, 15, 13 and maybe 19
     # sps = [sp[13], sp[6], sp[11], sp[10], sp[8], sp[15], sp[7]]
     for s in range(len(r.spawn_point)):
         r.add_vehicle(spawn_point=s)
@@ -227,6 +228,7 @@ def risk_traffic_jam(r, threshold=60):
 
 
 def risk_front_sculpture(r, threshold=65):
+    # sp 1, 0, 24
     # sps = [sp[1], sp[20], sp[0]]
     for s in range(3):
         print('car added')
@@ -250,6 +252,7 @@ def risk_front_sculpture(r, threshold=65):
 
 
 def risk_no_stop_cars(r, threshold=40):
+    # sp 22, 5, 9, 12, 16, 23, 20
     # mid = [sp[12], sp[14], sp[5], sp[9], sp[19], sp[18], sp[16]]
     for s in range(len(r.spawn_point)):
         r.add_vehicle(spawn_point=s)
@@ -265,6 +268,7 @@ def risk_no_stop_cars(r, threshold=40):
 
 
 def risk_ped_park(r, threshold=50):
+    # sp 25
     control = carla.WalkerControl()
     control.speed = 3
     control.direction.x = 0
@@ -283,8 +287,8 @@ def risk_ped_park(r, threshold=50):
             return True
 
 
-
 def risk_tunnel(r, threshold=80):
+    # sp 3, 4
     r.add_vehicle(filter='toyota*')
     r.add_vehicle(spawn_point=1, filter='volk*')
     while True:
@@ -298,6 +302,7 @@ def risk_tunnel(r, threshold=80):
 
 
 def risk_carlacola(r, threshold=80):
+    # sp 21
     print(r.add_vehicle(filter='jeep*'))
     while True:
         time.sleep(.1)
@@ -310,6 +315,7 @@ def risk_carlacola(r, threshold=80):
 
 
 def risk_bike_crossing(r, threshold=55):
+    # sp 2
     r.add_vehicle(filter='bh*')
     while True:
         time.sleep(.1)

@@ -20,6 +20,7 @@ Spawn NPCs into the simulation, when spawn with the command line argument
 import glob
 import os
 import sys
+import time
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -55,6 +56,10 @@ def main(args, vehicles_list, walkers_list, all_id):
         blueprints = [x for x in blueprints if not x.id.endswith('carlacola')]
 
     spawn_points = world.get_map().get_spawn_points()
+    spawn_points.remove(spawn_points[123])  # remove initial spawn point for the actual driver
+    spawn_points.remove(spawn_points[2])
+    spawn_points.remove(spawn_points[21])
+    spawn_points.remove(spawn_points[25])
     number_of_spawn_points = len(spawn_points)
 
     if args.number_of_vehicles < number_of_spawn_points:
@@ -97,7 +102,7 @@ def main(args, vehicles_list, walkers_list, all_id):
     # -------------
     # 1. take all the random locations to spawn
     spawn_points = []
-    for i in range(args.number_of_walkers):
+    for i in range(args.walkers):
         spawn_point = carla.Transform()
         loc = world.get_random_location_from_navigation()
         if (loc != None):
@@ -110,6 +115,7 @@ def main(args, vehicles_list, walkers_list, all_id):
         # set as not invencible
         if walker_bp.has_attribute('is_invincible'):
             walker_bp.set_attribute('is_invincible', 'false')
+        time.sleep(.1)  # Delay for spawning pedestrians
         batch.append(SpawnActor(walker_bp, spawn_point))
     results = client.apply_batch_sync(batch, True)
     for i in range(len(results)):

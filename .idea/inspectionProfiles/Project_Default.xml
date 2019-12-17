@@ -36,6 +36,7 @@
           <option value="examples.manual_control_attackwheel.ConfigParser" />
           <option value="thread" />
           <option value="examples.manual_control_steeringwheel.RestartTask" />
+          <option value="examples.manual_control_steeringwheel.NextTask" />
         </list>
       </option>
     </inspection_tool>
