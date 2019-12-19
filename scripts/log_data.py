@@ -25,7 +25,7 @@ sys.path.append('../carla/dist/carla-0.9.5-py3-linux-x86_64.egg')
 #     pass
 
 import carla
-from examples.manual_control_steeringwheel import HUD as driving_session
+from examples.steering_wheel_control import HUD as driving_session
 
 
 def init():

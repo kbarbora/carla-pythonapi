@@ -37,6 +37,8 @@
           <option value="thread" />
           <option value="examples.manual_control_steeringwheel.RestartTask" />
           <option value="examples.manual_control_steeringwheel.NextTask" />
+          <option value="scripts.controllers.RestartTask" />
+          <option value="scripts.controllers.NextTask" />
         </list>
       </option>
     </inspection_tool>

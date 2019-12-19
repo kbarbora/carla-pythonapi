@@ -28,7 +28,7 @@ try:
     sys.path.append('../examples')
 except IndexError:
     pass
-import manual_control_steeringwheel as ControlSW
+import steering_wheel_control as ControlSW
 import manual_control_attackwheel as ControlWheelAttack
 import spawn_npc as SpawnNPC
 import carla
@@ -41,7 +41,7 @@ def main(parse=True, pre_parsed=False):
         args = parser()
     else:
         if not pre_parsed:
-            raise Exception
+            raise Exception("Pre-parsed not completed")
         args = pre_parsed
 
     vehicles_list = []
@@ -54,9 +54,9 @@ def main(parse=True, pre_parsed=False):
         if args.cyberattack:
             print("Attack mode!")
             values = processes_attack_input(args.cyberattack)
-            ControlWheelAttack.start(args, clock, values)
+            ControlSW.start(args, clock, values)
         else:
-            ControlSW.start(args, clock)
+            ControlSW.start(args, clock, None)
     finally:
         client = carla.Client(args.host, args.port)
         print('destroying %d vehicles' % len(vehicles_list))
