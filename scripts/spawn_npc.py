@@ -56,10 +56,9 @@ def main(args, vehicles_list, walkers_list, all_id):
         blueprints = [x for x in blueprints if not x.id.endswith('carlacola')]
 
     spawn_points = world.get_map().get_spawn_points()
-    spawn_points.remove(spawn_points[123])  # remove initial spawn point for the actual driver
-    spawn_points.remove(spawn_points[2])
-    spawn_points.remove(spawn_points[21])
-    spawn_points.remove(spawn_points[25])
+    risk_sp = [123, 25, 24, 23, 22, 21, 20, 19, 16, 15, 13, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+    for i in risk_sp:
+        spawn_points.remove(spawn_points[i])  # remove initial spawn point for the actual driver ans risks
     number_of_spawn_points = len(spawn_points)
 
     if args.number_of_vehicles < number_of_spawn_points:

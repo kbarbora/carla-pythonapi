@@ -34,8 +34,9 @@ class CameraManager(object):
         self.hud = hud
         self.recording = False
         self._camera_transforms = [
-            carla.Transform(carla.Location(x=-0.1, y=-.3, z=1.2), carla.Rotation(yaw=5)),
-            carla.Transform(carla.Location(x=-0.5, y=-.4, z=1.2)),
+            # carla.Transform(carla.Location(x=-0.1, y=-.3, z=1.2), carla.Rotation(yaw=5)),
+            carla.Transform(carla.Location(x=-0.25, y=-.3, z=1.2), carla.Rotation(yaw=5)),
+            # carla.Transform(carla.Location(x=-0.5, y=-.4, z=1.2)),
             carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15))]
         self.transform_index = 1
         self.sensors = [
@@ -167,12 +168,11 @@ class HUD(object):
 
         # @TODO: traffic light feature not working properly
         traffic_light = world.player.get_traffic_light_state()
-        # print(traffic_light)
-        if traffic_light == 'Red':
+        if str(traffic_light) == 'Red':
             encounter_red_light = True
             stopped_at_red_light = True if speed <= 1 else False
-            print("RED LIGHT")
-            print('Stoped: ' + str(stopped_at_red_light))
+            # print("RED LIGHT")
+            # print('Stoped: ' + str(stopped_at_red_light))
         else:
             encounter_red_light = False
             stopped_at_red_light = False
@@ -230,16 +230,17 @@ class HUD(object):
             '{:.2f},'.format(delta_sl) + \
             '{},'.format(encounter_red_light) + \
             '{}'.format(stopped_at_red_light) + \
-            ',' + max_rpm + \
-            ',' + moi + \
-            ',' + drft + \
-            ',' + drztcd + \
-            ',' + drztcd + \
-            ',' + final_ratio + \
-            ',' + mass + \
-            ',' + drag_coefficient + \
-            ',' + center_of_mass + \
             ',' + text  # @TODO Verify that notifications has not a ','
+            # ',' + max_rpm + \
+            # ',' + moi + \
+            # ',' + drft + \
+            # ',' + drztcd + \
+            # ',' + drztcd + \
+            # ',' + final_ratio + \
+            # ',' + mass + \
+            # ',' + drag_coefficient + \
+            # ',' + center_of_mass + \
+            # ',' + text  # @TODO Verify that notifications has not a ','
 
     def write_driving_data(self, keep_writing=False):
         # global log

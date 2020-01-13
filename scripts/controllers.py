@@ -52,15 +52,16 @@ except ImportError:
 
 
 class DualControl(object):
-    def __init__(self, world, start_in_autopilot, attack, final_loc):
+    def __init__(self, world, start_in_autopilot, attack, task_level):
         self._autopilot_enabled = start_in_autopilot
         if isinstance(world.player, carla.Vehicle):
             self._control = carla.VehicleControl()
             world.player.set_autopilot(self._autopilot_enabled)
+            self._level = task_level
+            self._final_loc = carla.Location(x=187, y=55)
         elif isinstance(world.player, carla.Walker):
             self._control = carla.WalkerControl()
             self._autopilot_enabled = False
-            self._final_loc = final_loc
             self._rotation = world.player.get_transform().rotation
         else:
             raise NotImplementedError("Actor type not supported")
@@ -110,8 +111,12 @@ class DualControl(object):
                     current_loc = world.player.get_transform().location
                     print(current_loc)
                     if current_loc.x < 190 and (self._final_loc.y-15) < current_loc.y < self._final_loc.y:
-                        print("Next task")
-                        raise NextTask
+                        if self._level == 0:
+                            print("Next task")
+                            raise NextTask
+                        else:
+                            print("Last task")
+                            raise LastTask
                 elif event.button == 1:
                     world.hud.toggle_info()
                 elif event.button == 2:
@@ -164,10 +169,9 @@ class DualControl(object):
         if not self._autopilot_enabled:
             if isinstance(self._control, carla.VehicleControl):
                 # self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time())
-                if self._attack_control:
+                if self._attack_control and (not self._attack_ended):
                     self._parse_vehicle_wheel_attack()
-                else:
-                    self._parse_vehicle_wheel()
+                self._parse_vehicle_wheel()
                 self._control.reverse = self._control.gear < 0
             # elif isinstance(self._control, carla.WalkerControl):
             #     self._parse_walker_keys(pygame.key.get_pressed(), clock.get_time())
@@ -190,17 +194,18 @@ class DualControl(object):
         # Custom function to map range of inputs [1, -1] to outputs [0, 1] i.e 1 from inputs means nothing is pressed
         # For the steering, it seems fine as it is
         # steerCmd = self.k_values[0] * math.tan(0.78 * jsInputs[self._steer_idx])
-        steerCmd = .8 * self.k_values[0] * jsInputs[self._steer_idx]
+        steerCmd = self.k_values[0] * jsInputs[self._steer_idx]
+
         # @TODO: Disable acceleration at the beginning of the trial
         # throttleCmd = self.k_values[1] + (2.05 * math.log10(
         #     -0.7 * jsInputs[self._throttle_idx] + 1.4) - 1.2) / 0.92
         throttleCmd = self.k_values[1] * abs((jsInputs[self._throttle_idx] / 2 + .5) - 1)
-
         if throttleCmd <= 0.01:
             throttleCmd = 0
         elif throttleCmd > 1:
             throttleCmd = 1
         # print(throttleCmd)
+
         # @TODO: Disable brake at the beginning of the trial
         brakeCmd = self.k_values[2] * abs(jsInputs[self._brake_idx] - 1)
         # brakeCmd = self.k_values[2] + (2.05 * math.log10(
@@ -244,41 +249,22 @@ class DualControl(object):
             raise (Exception("[Error] Attack value not identified "))
         self._attack_repetitions -= 1
         self._attack_control = False
-        steerCmd = self.k_values[0] * math.tan(0.78 * jsInputs[self._steer_idx])
-
-        # @TODO: Disable acceleration at the beginning of the trial
-        throttleCmd = self.k_values[1] + (2.05 * math.log10(
-            -0.7 * jsInputs[self._throttle_idx] + 1.4) - 1.2) / 0.92
-        if throttleCmd <= 0:
-            throttleCmd = 0
-        elif throttleCmd > 1:
-            throttleCmd = 1
-
-        # @TODO: Disable brake at the beginning of the trial
-        brakeCmd = self.k_values[2] + (2.05 * math.log10(
-            -0.7 * jsInputs[self._brake_idx] + 1.4) - 1.2) / 0.92
-        if brakeCmd <= 0:
-            brakeCmd = 0
-        elif brakeCmd > 1:
-            brakeCmd = 1
-
-        self._control.steer = steerCmd
-        self._control.brake = brakeCmd
-        self._control.throttle = throttleCmd
-        # toggle = jsButtons[self._reverse_idx]
-        self._control.hand_brake = bool(jsButtons[self._handbrake_idx])
         return
 
     def attack_counter(self):
-        time.sleep(10)
+        time.sleep(5)
         print("Starting counter")  # debug
         while True:
+            print(self._attack_repetitions)
             if self._attack_repetitions < 0:
-                time.sleep(self._attack_restablished)
+                if not self._attack_restablished:
+                    print("Skipping restablished")
+                else:
+                    time.sleep(self._attack_restablished)
+                    print("Restablishing k values")
+                    self.k_values = [1.0, 1.0, 1.0]
                 self._attack_ended = True
-                print("Attack finished, restablishing k values")
-                # self.k_values = [1.0, 1.6, 1.6]
-                self.k_values = [1.0, 1.0, 1.0]
+                print("Attack finished")
                 return
             else:
                 time.sleep(self._attack_interval)

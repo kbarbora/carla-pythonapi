@@ -36,6 +36,8 @@ from __future__ import print_function
 # ==============================================================================
 # -- find carla module ---------------------------------------------------------
 # ==============================================================================
+import _thread
+
 import thread
 import glob
 import os
@@ -65,6 +67,7 @@ from graphic_controls import CameraManager, HUD
 import carla
 from carla_exception import *
 import start_driving
+import risk_decisions
 from carla import ColorConverter as cc
 import collections
 import datetime
@@ -120,7 +123,7 @@ except ImportError:
 # -- Global vars  --------------------------------------------------------------
 # ==============================================================================
 speed = 0
-final_loc = carla.Location(x=187, y=55)
+# final_loc = carla.Location(x=187, y=55)
 
 
 # ==============================================================================
@@ -202,630 +205,9 @@ class World(object):
                 actor.destroy()
 
 
-# # ==============================================================================
-# # -- DualControl -----------------------------------------------------------
-# # ==============================================================================
-#
-#
-# class DualControl(object):
-#     def __init__(self, world, start_in_autopilot):
-#         self._autopilot_enabled = start_in_autopilot
-#         if isinstance(world.player, carla.Vehicle):
-#             self._control = carla.VehicleControl()
-#             world.player.set_autopilot(self._autopilot_enabled)
-#         elif isinstance(world.player, carla.Walker):
-#             self._control = carla.WalkerControl()
-#             self._autopilot_enabled = False
-#             self._rotation = world.player.get_transform().rotation
-#         else:
-#             raise NotImplementedError("Actor type not supported")
-#         self._steer_cache = 0.0
-#         world.hud.notification("Press 'H' or '?' for help.", seconds=4.0)
-#
-#         # initialize steering wheel
-#         pygame.joystick.init()
-#
-#         joystick_count = pygame.joystick.get_count()
-#         if joystick_count > 1:
-#             raise ValueError("Please Connect Just One Joystick")
-#
-#         self._joystick = pygame.joystick.Joystick(0)
-#         self._joystick.init()
-#
-#         self._parser = ConfigParser()
-#         self._parser.read('../config/wheel_config.ini')
-#         self._steer_idx = int(
-#             self._parser.get('G29 Racing Wheel', 'steering_wheel'))
-#         self._throttle_idx = int(
-#             self._parser.get('G29 Racing Wheel', 'throttle'))
-#         self._brake_idx = int(self._parser.get('G29 Racing Wheel', 'brake'))
-#         self._reverse_idx = int(self._parser.get('G29 Racing Wheel', 'reverse'))
-#         self._handbrake_idx = int(
-#             self._parser.get('G29 Racing Wheel', 'handbrake'))
-#
-#     def parse_events(self, world, clock):
-#         for event in pygame.event.get():
-#             if event.type == pygame.QUIT:
-#                 return True
-#             elif event.type == pygame.JOYBUTTONDOWN:
-#                 print("Button pressed in Joystick ->" + str(event.button))
-#                 if event.button == 7:
-#                     raise RestartTask
-#                 if event.button == 6:
-#                     current_loc = world.player.get_transform().location
-#                     print(current_loc)
-#                     if current_loc.x < 190 and (final_loc.y-15) < current_loc.y < (final_loc.y):
-#                         print("Next task")
-#                         raise NextTask
-#                 elif event.button == 1:
-#                     world.hud.toggle_info()
-#                 elif event.button == 2:
-#                     world.camera_manager.toggle_camera()
-#                 elif event.button == 3:
-#                     world.next_weather()
-#                 elif event.button == self._reverse_idx:
-#                     self._control.gear = 1 if self._control.reverse else -1
-#                 elif event.button == 23:
-#                     world.camera_manager.next_sensor()
-#
-#             elif event.type == pygame.KEYUP:
-#                 if self._is_quit_shortcut(event.key):
-#                     return True
-#                 elif event.key == K_BACKSPACE:
-#                     world.restart()
-#                 elif event.key == K_F1:
-#                     world.hud.toggle_info()
-#                 elif event.key == K_h or (event.key == K_SLASH and pygame.key.get_mods() & KMOD_SHIFT):
-#                     world.hud.help.toggle()
-#                 elif event.key == K_TAB:
-#                     world.camera_manager.toggle_camera()
-#                 elif event.key == K_c and pygame.key.get_mods() & KMOD_SHIFT:
-#                     world.next_weather(reverse=True)
-#                 elif event.key == K_c:
-#                     world.next_weather()
-#                 elif event.key == K_BACKQUOTE:
-#                     world.camera_manager.next_sensor()
-#                 elif event.key > K_0 and event.key <= K_9:
-#                     world.camera_manager.set_sensor(event.key - 1 - K_0)
-#                 elif event.key == K_r:
-#                     world.camera_manager.toggle_recording()
-#                 if isinstance(self._control, carla.VehicleControl):
-#                     if event.key == K_q:
-#                         self._control.gear = 1 if self._control.reverse else -1
-#                     elif event.key == K_m:
-#                         self._control.manual_gear_shift = not self._control.manual_gear_shift
-#                         self._control.gear = world.player.get_control().gear
-#                         world.hud.notification('%s Transmission' %
-#                                                ('Manual' if self._control.manual_gear_shift else 'Automatic'))
-#                     elif self._control.manual_gear_shift and event.key == K_COMMA:
-#                         self._control.gear = max(-1, self._control.gear - 1)
-#                     elif self._control.manual_gear_shift and event.key == K_PERIOD:
-#                         self._control.gear = self._control.gear + 1
-#                     elif event.key == K_p:
-#                         self._autopilot_enabled = not self._autopilot_enabled
-#                         world.player.set_autopilot(self._autopilot_enabled)
-#                         world.hud.notification('Autopilot %s' % ('On' if self._autopilot_enabled else 'Off'))
-#
-#         if not self._autopilot_enabled:
-#             if isinstance(self._control, carla.VehicleControl):
-#                 # self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time())
-#                 self._parse_vehicle_wheel()
-#                 self._control.reverse = self._control.gear < 0
-#             # elif isinstance(self._control, carla.WalkerControl):
-#             #     self._parse_walker_keys(pygame.key.get_pressed(), clock.get_time())
-#             world.player.apply_control(self._control)
-#
-#     # def _parse_vehicle_keys(self, keys, milliseconds):
-#     #     self._control.throttle = 1.0 if keys[K_UP] or keys[K_w] else 0.0
-#     #     steer_increment = 5e-4 * milliseconds
-#     #     if keys[K_LEFT] or keys[K_a]:
-#     #         self._steer_cache -= steer_increment
-#     #     elif keys[K_RIGHT] or keys[K_d]:
-#     #         self._steer_cache += steer_increment
-#     #     else:
-#     #         self._steer_cache = 0.0
-#     #     self._steer_cache = min(0.7, max(-0.7, self._steer_cache))
-#     #     self._control.steer = round(self._steer_cache, 1)
-#     #     self._control.brake = 1.0 if keys[K_DOWN] or keys[K_s] else 0.0
-#     #     self._control.hand_brake = keys[K_SPACE]
-#
-#     def _parse_vehicle_wheel(self):
-#         numAxes = self._joystick.get_numaxes()
-#         jsInputs = [float(self._joystick.get_axis(i)) for i in range(numAxes)]
-#         # print (jsInputs)
-#         jsButtons = [float(self._joystick.get_button(i)) for i in
-#                      range(self._joystick.get_numbuttons())]
-#
-#         # Custom function to map range of inputs [1, -1] to outputs [0, 1] i.e 1 from inputs means nothing is pressed
-#         # For the steering, it seems fine as it is
-#         K1 = 1.0  # 0.55
-#         K2 = 1.6  # 1.6
-#         steerCmd = K1 * math.tan(0.78 * jsInputs[self._steer_idx])
-#         # @TODO: Disable acceleration at the beginning of the trial
-#         throttleCmd = K2 + (2.05 * math.log10(
-#             -0.7 * jsInputs[self._throttle_idx] + 1.4) - 1.2) / 0.92
-#
-#         if throttleCmd <= 0:
-#             throttleCmd = 0
-#         elif throttleCmd > 1:
-#             throttleCmd = 1
-#         # print(throttleCmd)
-#         # @TODO: Disable brake at the beginning of the trial
-#         brakeCmd = 1.6 + (2.05 * math.log10(
-#             -0.7 * jsInputs[self._brake_idx] + 1.4) - 1.2) / 0.92
-#         if brakeCmd <= 0:
-#             brakeCmd = 0
-#         elif brakeCmd > 1:
-#             brakeCmd = 1
-#
-#         self._control.steer = steerCmd
-#         self._control.brake = brakeCmd
-#         self._control.throttle = throttleCmd
-#
-#         #toggle = jsButtons[self._reverse_idx]
-#
-#         self._control.hand_brake = bool(jsButtons[self._handbrake_idx])
-#
-#     # def _parse_walker_keys(self, keys, milliseconds):
-#     #     self._control.speed = 0.0
-#     #     if keys[K_DOWN] or keys[K_s]:
-#     #         self._control.speed = 0.0
-#     #     if keys[K_LEFT] or keys[K_a]:
-#     #         self._control.speed = .01
-#     #         self._rotation.yaw -= 0.08 * milliseconds
-#     #     if keys[K_RIGHT] or keys[K_d]:
-#     #         self._control.speed = .01
-#     #         self._rotation.yaw += 0.08 * milliseconds
-#     #     if keys[K_UP] or keys[K_w]:
-#     #         self._control.speed = 5.556 if pygame.key.get_mods() & KMOD_SHIFT else 2.778
-#     #     self._control.jump = keys[K_SPACE]
-#     #     self._rotation.yaw = round(self._rotation.yaw, 1)
-#     #     self._control.direction = self._rotation.get_forward_vector()
-#
-#     @staticmethod
-#     def _is_quit_shortcut(key):
-#         return (key == K_ESCAPE) or (key == K_q and pygame.key.get_mods() & KMOD_CTRL)
-
-
-# ==============================================================================
-# -- HUD -----------------------------------------------------------------------
-# ==============================================================================
-
-
-# class HUD(object):
-#     def __init__(self, width, height):
-#         self.dim = (width, height)
-#         font = pygame.font.Font(pygame.font.get_default_font(), 20)
-#         fonts = [x for x in pygame.font.get_fonts() if 'mono' in x]
-#         default_font = 'ubuntumono'
-#         mono = pygame.font.match_font(default_font)
-#         self._font_mono = pygame.font.Font(mono, 26)
-#         self._notifications = FadingText(font, (width, 40), (0, height - 40))
-#         self.help = HelpText(pygame.font.Font(mono, 24), width, height, __doc__)
-#         self.server_fps = 0
-#         self.frame = 0
-#         self.simulation_time = 0
-#         self._show_info = True
-#         self._info_text = []
-#         self.log_data = ""
-#         self._server_clock = pygame.time.Clock()
-#
-#     def on_world_tick(self, timestamp):
-#         self._server_clock.tick()
-#         self.server_fps = self._server_clock.get_fps()
-#         self.frame = timestamp.frame
-#         self.simulation_time = timestamp.elapsed_seconds
-#
-#     def tick(self, world, clock):
-#         global speed
-#         self._notifications.tick(world, clock)
-#         if not self._show_info:
-#             return
-#         t = world.player.get_transform()
-#         v = world.player.get_velocity()
-#         c = world.player.get_control()
-#
-#         sl = world.player.get_speed_limit()
-#         # print(sl)
-#         speed_kmh = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
-#         speed = speed_kmh / 1.609       # show km/h to mph conversion
-#         delta_sl = 0
-#         if speed > sl:
-#             delta_sl = speed - sl
-#
-#         # @TODO: traffic light feature not working properly
-#         traffic_light = world.player.get_traffic_light_state()
-#         # print(traffic_light)
-#         if traffic_light == 'Red':
-#             encounter_red_light = True
-#             stopped_at_red_light = True if speed <= 1 else False
-#             print("RED LIGHT")
-#             print('Stoped: ' + str(stopped_at_red_light))
-#         else:
-#             encounter_red_light = False
-#             stopped_at_red_light = False
-#
-#         physics = world.player.get_physics_control()
-#         torque_curve = physics.torque_curve
-#         max_rpm = str(physics.max_rpm)[0:4]
-#         moi = str(physics.moi)[0:4]
-#         drft = str(physics.damping_rate_full_throttle)[0:4]
-#         drztce = str(str(physics.damping_rate_zero_throttle_clutch_engaged))[0:4]
-#         drztcd = str(physics.damping_rate_zero_throttle_clutch_disengaged)[0:4]
-#         automatic_trans = str(physics.use_gear_autobox)
-#         gear_switch_time = str(physics.gear_switch_time)[0:4]
-#         clutch_strength = str(physics.clutch_strength)[0:4]
-#         final_ratio = str(physics.final_ratio)[0:4]
-#         # forward_gears = physics.forward_gears
-#         mass = str(physics.mass)
-#         drag_coefficient = str(physics.drag_coefficient)[0:4]
-#         center_of_mass = str(physics.center_of_mass.x)[0:4] + ' ' + str(physics.center_of_mass.y)[0:4] + ' ' + str(physics.center_of_mass.z)[0:4]
-#         steering_curve = str(physics.steering_curve)
-#         wheels = str(physics.wheels)
-#
-#
-#         heading = 'N' if abs(t.rotation.yaw) < 89.5 else ''
-#         heading += 'S' if abs(t.rotation.yaw) > 90.5 else ''
-#         heading += 'E' if 179.5 > t.rotation.yaw > 0.5 else ''
-#         heading += 'W' if -0.5 > t.rotation.yaw > -179.5 else ''
-#         vehicles = world.world.get_actors().filter('vehicle.*')
-#
-#         elapsed_time = str(datetime.timedelta(seconds=int(self.simulation_time)))[2:]
-#
-#         vehicle_counter = 0
-#         if len(vehicles) > 1:
-#             distance = lambda l: math.sqrt((l.x - t.location.x)**2 + (l.y - t.location.y)**2 + (l.z - t.location.z)**2)
-#             vehicles = [(distance(x.get_location()), x) for x in vehicles if x.id != world.player.id]
-#             for d, vehicle in sorted(vehicles):
-#                 if d > 100.0:
-#                     break
-#                 vehicle_counter += 1
-#
-#         text = '' if 'help' in self._notifications.text else self._notifications.text
-#
-#         self._info_text = [
-#             'Time: % 9s' % elapsed_time,
-#             'Speed:   % 1.0f mph' % speed,
-#             ('Steer:', c.steer, -1.0, 1.0)]
-#         self.log_data =\
-#             '{:.2f},'.format(speed) + \
-#             '{:.2f}{},'.format(t.rotation.yaw, heading) + \
-#             '{:.2f} {:.2f},'.format(t.location.x, t.location.y) + \
-#             '{:.2f},'.format(c.throttle) + \
-#             '{:.2f},'.format(c.steer) + \
-#             '{:.2f},'.format(c.brake) + \
-#             '{},'.format(c.reverse) + \
-#             '{},'.format(vehicle_counter) + \
-#             '{:.2f},'.format(delta_sl) + \
-#             '{},'.format(encounter_red_light) + \
-#             '{}'.format(stopped_at_red_light) + \
-#             ',' + max_rpm + \
-#             ',' + moi + \
-#             ',' + drft + \
-#             ',' + drztcd + \
-#             ',' + drztcd + \
-#             ',' + final_ratio + \
-#             ',' + mass + \
-#             ',' + drag_coefficient + \
-#             ',' + center_of_mass + \
-#             ',' + text  # @TODO Verify that notifications has not a ','
-#
-#     def write_driving_data(self, keep_writing=False):
-#         global log
-#         counter = 0
-#         while True:
-#             if counter > 0:
-#                 try:
-#                     log.write('{},{}\n'.format(counter, self.log_data))
-#                 except Exception:
-#                     log.write('{},{}\n'.format(counter, self.log_data))
-#                     log.close()
-#             # log.write(str(counter) +',' +self.log_data + '\n')
-#             time.sleep(.1)   # log data interval
-#             counter += 1
-#             if not keep_writing:
-#                 break
-#         return
-#
-#     def toggle_info(self):
-#         self._show_info = not self._show_info
-#
-#     def notification(self, text, seconds=2.0):
-#         self._notifications.set_text(text, seconds=seconds)
-#
-#     def error(self, text):
-#         self._notifications.set_text('Error: %s' % text, (255, 0, 0))
-#
-#     def render(self, display):
-#         # if not self._show_info:
-#         if self._show_info:
-#             #--------Display a black bar to contain the hud data
-#             # info_surface = pygame.Surface((self.dim[1], 220))
-#             # info_surface.set_alpha(100)
-#             # display.blit(info_surface, (0, 0))
-#             #---------------------------------------------------
-#             v_offset = 4
-#             bar_h_offset = 100
-#             bar_width = 106
-#             for item in self._info_text:
-#                 if isinstance(item, tuple):
-#                     rect_border = pygame.Rect((1200 + bar_h_offset, v_offset + 815), (bar_width, 8))
-#                     pygame.draw.rect(display, (255, 255, 255), rect_border, 1)
-#                     f = (item[1] - item[2]) / (item[3] - item[2])
-#                     if item[2] < 0.0:
-#                         rect = pygame.Rect((1200 + bar_h_offset + f * (bar_width - 6), v_offset + 815), (6, 6))
-#                     else:
-#                         rect = pygame.Rect((1200 + bar_h_offset, v_offset + 815), (f * bar_width, 6))
-#                     pygame.draw.rect(display, (255, 255, 255), rect)
-#                     item = item[0]
-#                 if item:  # At this point has to be a str.
-#                     surface = self._font_mono.render(item, True, (255, 255, 255))
-#                     display.blit(surface, (1200, v_offset + 800))
-#                 v_offset += 18
-#         self._notifications.render(display)
-#         self.help.render(display)
-#
-
-# # ==============================================================================
-# # -- FadingText ----------------------------------------------------------------
-# # ==============================================================================
-#
-#
-# class FadingText(object):
-#     def __init__(self, font, dim, pos):
-#         self.font = font
-#         self.dim = dim
-#         self.pos = pos
-#         self.seconds_left = 0
-#         self.surface = pygame.Surface(self.dim)
-#         self.text = ''
-#
-#     def set_text(self, text, color=(255, 255, 255), seconds=1.0):
-#         self.text = text
-#         text_texture = self.font.render(text, True, color)
-#         self.surface = pygame.Surface(self.dim)
-#         self.seconds_left = seconds
-#         self.surface.fill((0, 0, 0, 0))
-#         self.surface.blit(text_texture, (10, 11))
-#
-#     def tick(self, _, clock):
-#         delta_seconds = 1e-3 * clock.get_time()
-#         self.seconds_left = max(0.0, self.seconds_left - delta_seconds)
-#         self.surface.set_alpha(500.0 * self.seconds_left)
-#
-#     def render(self, display):
-#         display.blit(self.surface, self.pos)
-#
-#
-# # ==============================================================================
-# # -- HelpText ------------------------------------------------------------------
-# # ==============================================================================
-#
-#
-# class HelpText(object):
-#     def __init__(self, font, width, height):
-#         lines = __doc__.split('\n')
-#         self.font = font
-#         self.dim = (680, len(lines) * 22 + 12)
-#         self.pos = (0.5 * width - 0.5 * self.dim[0], 0.5 * height - 0.5 * self.dim[1])
-#         self.seconds_left = 0
-#         self.surface = pygame.Surface(self.dim)
-#         self.surface.fill((0, 0, 0, 0))
-#         for n, line in enumerate(lines):
-#             text_texture = self.font.render(line, True, (255, 255, 255))
-#             self.surface.blit(text_texture, (22, n * 22))
-#             self._render = False
-#         self.surface.set_alpha(220)
-#
-#     def toggle(self):
-#         self._render = not self._render
-#
-#     def render(self, display):
-#         if self._render:
-#             display.blit(self.surface, self.pos)
-#
-
-# # ==============================================================================
-# # -- CollisionSensor -----------------------------------------------------------
-# # ==============================================================================
-#
-#
-# class CollisionSensor(object):
-#     def __init__(self, parent_actor, hud):
-#         self.sensor = None
-#         self.history = []
-#         self._parent = parent_actor
-#         self.hud = hud
-#         world = self._parent.get_world()
-#         bp = world.get_blueprint_library().find('sensor.other.collision')
-#         self.sensor = world.spawn_actor(bp, carla.Transform(), attach_to=self._parent)
-#         # We need to pass the lambda a weak reference to self to avoid circular
-#         # reference.
-#         weak_self = weakref.ref(self)
-#         self.sensor.listen(lambda event: CollisionSensor._on_collision(weak_self, event))
-#
-#     def get_collision_history(self):
-#         history = collections.defaultdict(int)
-#         for frame, intensity in self.history:
-#             history[frame] += intensity
-#         return history
-#
-#     @staticmethod
-#     def _on_collision(weak_self, event):
-#         self = weak_self()
-#         if not self:
-#             return
-#         actor_type = get_actor_display_name(event.other_actor)
-#         self.hud.notification('Collision with %r' % actor_type)
-#         impulse = event.normal_impulse
-#         intensity = math.sqrt(impulse.x**2 + impulse.y**2 + impulse.z**2)
-#         self.history.append((event.frame, intensity))
-#         if len(self.history) > 4000:
-#             self.history.pop(0)
-#
-#
-# # ==============================================================================
-# # -- LaneInvasionSensor --------------------------------------------------------
-# # ==============================================================================
-#
-#
-# class LaneInvasionSensor(object):
-#     def __init__(self, parent_actor, hud):
-#         self.sensor = None
-#         self._parent = parent_actor
-#         self.hud = hud
-#         world = self._parent.get_world()
-#         bp = world.get_blueprint_library().find('sensor.other.lane_invasion')
-#         self.sensor = world.spawn_actor(bp, carla.Transform(), attach_to=self._parent)
-#         # We need to pass the lambda a weak reference to self to avoid circular
-#         # reference.
-#         weak_self = weakref.ref(self)
-#         self.sensor.listen(lambda event: LaneInvasionSensor._on_invasion(weak_self, event))
-#
-#     @staticmethod
-#     def _on_invasion(weak_self, event):
-#         self = weak_self()
-#         if not self:
-#             return
-#         lane_types = set(x.type for x in event.crossed_lane_markings)
-#         text = ['%r' % str(x).split()[-1] for x in lane_types]
-#         _lane_invasion_text = 'Crossed line %s' % ' and '.join(text)
-#         self.hud.notification(_lane_invasion_text)
-#
-# # ==============================================================================
-# # -- GnssSensor --------------------------------------------------------
-# # ==============================================================================
-#
-#
-# class GnssSensor(object):
-#     def __init__(self, parent_actor):
-#         self.sensor = None
-#         self._parent = parent_actor
-#         self.lat = 0.0
-#         self.lon = 0.0
-#         world = self._parent.get_world()
-#         bp = world.get_blueprint_library().find('sensor.other.gnss')
-#         self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(x=1.0, z=2.8)), attach_to=self._parent)
-#         # We need to pass the lambda a weak reference to self to avoid circular
-#         # reference.
-#         weak_self = weakref.ref(self)
-#         self.sensor.listen(lambda event: GnssSensor._on_gnss_event(weak_self, event))
-#
-#     @staticmethod
-#     def _on_gnss_event(weak_self, event):
-#         self = weak_self()
-#         if not self:
-#             return
-#         self.lat = event.latitude
-#         self.lon = event.longitude
-
-
-# ==============================================================================
-# -- CameraManager -------------------------------------------------------------
-# ==============================================================================
-
-
-# class CameraManager(object):
-#     def __init__(self, parent_actor, hud):
-#         self.sensor = None
-#         self.surface = None
-#         self._parent = parent_actor
-#         self.hud = hud
-#         self.recording = False
-#         self._camera_transforms = [
-#             carla.Transform(carla.Location(x=-0.1, y=-.3, z=1.2), carla.Rotation(yaw=5)),
-#             carla.Transform(carla.Location(x=-0.5, y=-.4, z=1.2)),
-#             carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15))]
-#         self.transform_index = 1
-#         self.sensors = [
-#             ['sensor.camera.rgb', cc.Raw, 'Camera RGB']]
-#             # ['sensor.camera.depth', cc.Raw, 'Camera Depth (Raw)'],
-#             # ['sensor.camera.depth', cc.Depth, 'Camera Depth (Gray Scale)'],
-#             # ['sensor.camera.depth', cc.LogarithmicDepth, 'Camera Depth (Logarithmic Gray Scale)'],
-#             # ['sensor.camera.semantic_segmentation', cc.Raw, 'Camera Semantic Segmentation (Raw)'],
-#             # ['sensor.camera.semantic_segmentation', cc.CityScapesPalette,
-#             #     'Camera Semantic Segmentation (CityScapes Palette)'],
-#             # ['sensor.lidar.ray_cast', None, 'Lidar (Ray-Cast)']]
-#         world = self._parent.get_world()
-#         bp_library = world.get_blueprint_library()
-#         for item in self.sensors:
-#             bp = bp_library.find(item[0])
-#             if item[0].startswith('sensor.camera'):
-#                 bp.set_attribute('image_size_x', str(hud.dim[0]))
-#                 bp.set_attribute('image_size_y', str(hud.dim[1]))
-#             # elif item[0].startswith('sensor.lidar'):
-#             #     bp.set_attribute('range', '5000')
-#             item.append(bp)
-#         self.index = None
-#
-#     def toggle_camera(self):
-#         self.transform_index = (self.transform_index + 1) % len(self._camera_transforms)
-#         self.sensor.set_transform(self._camera_transforms[self.transform_index])
-#
-#     def set_sensor(self, index, notify=True):
-#         index = index % len(self.sensors)
-#         needs_respawn = True if self.index is None \
-#             else self.sensors[index][0] != self.sensors[self.index][0]
-#         if needs_respawn:
-#             if self.sensor is not None:
-#                 self.sensor.destroy()
-#                 self.surface = None
-#             self.sensor = self._parent.get_world().spawn_actor(
-#                 self.sensors[index][-1],
-#                 self._camera_transforms[self.transform_index],
-#                 attach_to=self._parent)
-#             # We need to pass the lambda a weak reference to self to avoid
-#             # circular reference.
-#             weak_self = weakref.ref(self)
-#             self.sensor.listen(lambda image: CameraManager._parse_image(weak_self, image))
-#         if notify:
-#             self.hud.notification(self.sensors[index][2])
-#         self.index = index
-#
-#     def next_sensor(self):
-#         self.set_sensor(self.index + 1)
-#
-#     def toggle_recording(self):
-#         self.recording = not self.recording
-#         self.hud.notification('Recording %s' % ('On' if self.recording else 'Off'))
-#
-#     def render(self, display):
-#         if self.surface is not None:
-#             display.blit(self.surface, (0, 0))
-#
-#     @staticmethod
-#     def _parse_image(weak_self, image):
-#         self = weak_self()
-#         if not self:
-#             return
-#         if self.sensors[self.index][0].startswith('sensor.lidar'):
-#             points = np.frombuffer(image.raw_data, dtype=np.dtype('f4'))
-#             points = np.reshape(points, (int(points.shape[0] / 3), 3))
-#             lidar_data = np.array(points[:, :2])
-#             lidar_data *= min(self.hud.dim) / 100.0
-#             lidar_data += (0.5 * self.hud.dim[0], 0.5 * self.hud.dim[1])
-#             lidar_data = np.fabs(lidar_data) # pylint: disable=E1111
-#             lidar_data = lidar_data.astype(np.int32)
-#             lidar_data = np.reshape(lidar_data, (-1, 2))
-#             lidar_img_size = (self.hud.dim[0], self.hud.dim[1], 3)
-#             lidar_img = np.zeros(lidar_img_size)
-#             lidar_img[tuple(lidar_data.T)] = (255, 255, 255)
-#             self.surface = pygame.surfarray.make_surface(lidar_img)
-#         else:
-#             image.convert(self.sensors[self.index][1])
-#             array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
-#             array = np.reshape(array, (image.height, image.width, 4))
-#             array = array[:, :, :3]
-#             array = array[:, :, ::-1]
-#             self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
-#         if self.recording:
-#             image.save_to_disk('_out/%08d' % image.frame)
-
-
 # ==============================================================================
 # -- game_loop() ---------------------------------------------------------------
 # ==============================================================================
-
 
 def get_actor_display_name(actor, truncate=250):
     name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
@@ -845,10 +227,10 @@ def game_loop(args, clock):
     k_values = [1.0, 1.6, 1.6]
     # attack_performed = 0
     if attack:
-        attack['interval'] = attack['values'][3]
-        attack['inital'] = attack['values'][4]
-        attack['restablished'] = attack['values'][5]
-        attack['repetitions'] = attack['values'][6]
+        attack['interval'] = attack['values'][4]
+        attack['inital'] = attack['values'][5]
+        attack['restablished'] = attack['values'][6]
+        attack['repetitions'] = attack['values'][7]
 
     pygame.init()
     pygame.font.init()
@@ -867,10 +249,10 @@ def game_loop(args, clock):
         hud = HUD(args.width, args.height, log, __doc__)
         world = World(client.get_world(), hud, args.filter)
         if attack:
-            controller = DualControl(world, args.autopilot, attack, final_loc)
+            controller = DualControl(world, args.autopilot, attack, args.tasklevel)
             thread.start_new_thread(controller.attack_counter, ())
         else:
-            controller = DualControl(world, args.autopilot, None, final_loc)
+            controller = DualControl(world, args.autopilot, None, args.tasklevel)
         time.sleep(1.5)
         thread.start_new_thread(hud.write_driving_data, (True,))
         while True:
@@ -922,13 +304,19 @@ def start(args, clock, attack_values):
     except NextTask:
         print('________________________________________________________'
               '________________________________________________________')
-        args.walkers = 50   # for testing purposes
+        args.walkers = 20   # for testing purposes
         args.number_of_vehicles = 50
         args.tasklevel = 1
         start_driving.main(False, args)
     except LastTask:
         print('________________________________________________________'
               '________________________________________________________')
+        start_driving.destroy_NPC(args)
+        args.walkers = 0  # for testing purposes
+        args.number_of_vehicles = 0
+        args.tasklevel = 2
+        _thread.start_new_thread(risk_decisions.init, ())
+        start_driving.main(False, args)
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
 
@@ -946,22 +334,12 @@ def create_logfile(args):
     log = open(args.log_filepath + logname, 'w')
     log.write('Seconds,Speed,Heading,Location,Throttle,Steer,Brake,Reverse,' +
               'Near Vehicles,Over SL,' +
-              'Red Light,Stopped RL,Max RPM, MoI, DRFT, DRZTCE, DRZTCD, Final Ratio,' +
-              'Mass,Drag,MassCenter,Notifications\n')
+              'Red Light,Stopped RL,Notifications\n')
+    # log.write('Seconds,Speed,Heading,Location,Throttle,Steer,Brake,Reverse,' +
+    #           'Near Vehicles,Over SL,' +
+    #           'Red Light,Stopped RL,Max RPM, MoI, DRFT, DRZTCE, DRZTCD, Final Ratio,' +
+    #           'Mass,Drag,MassCenter,Notifications\n')
     return log
-
-
-def attack_counter():
-    global attack
-    while True:
-        if attack['repetitions'] < 1:
-            time.sleep(attack['restablished'])
-            attack['values'][0] = -1
-            print("Attack finished")
-            return
-        elif attack['repetitions'] > 0:
-            time.sleep(attack['interval'])
-            attack['values'][0] = 1
 
 
 def format_logname(args):

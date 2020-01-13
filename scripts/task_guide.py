@@ -40,9 +40,9 @@ import time
 
 green = carla.Color(100, 255, 0)
 blue = carla.Color(0, 0, 255)
-tick_time = 0.01
+tick_time = .5
 waypoint_separation = 4
-lifetime = 5
+lifetime = 60
 
 
 def go_straight(debug, current, steps=1):
@@ -184,6 +184,7 @@ def main():
         # print(current)
         counter = 0
         # main loop
+        time.sleep(5)
         current = go_straight(debug, current, 137)
         current = make_right(debug, current)
         current = go_straight(debug, current, 10)

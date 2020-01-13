@@ -164,21 +164,39 @@ def get_driver():
 
 def init():
     global world_g, driver_g
+    print("***starting risks")
     client = carla.Client('127.0.0.1', 2000)
     world_g = client.get_world()
     sp = carla.Map.get_spawn_points(world_g.get_map())
-    ri = risk(world_g, spawn_point=sp)
-    risks = [ri]
+    bike_crossing = risk(world_g, spawn_point=sp[2])
+    carla_cola = risk(world_g, spawn_point=sp[21])
+    tunnel = risk(world_g, spawn_point=sp[3:5])
+    park = risk(world_g, spawn_point=sp[25])
+    stop = [sp[12], sp[9], sp[5], sp[22], sp[20], sp[23], sp[16]]
+    stop_traffic = risk(world_g, spawn_point=stop)
+    sculpture = risk(world_g, spawn_point=[sp[1], sp[0], sp[24]])
+    traffic_jam = risk(world_g, spawn_point=[sp[10], sp[8], sp[6], sp[10], sp[7], sp[15], sp[13], sp[19]])
+    risks = [bike_crossing, carla_cola, tunnel, park, stop_traffic, sculpture, traffic_jam]
     driver_g = get_driver()
+    risk_bike_crossing(risks[0])
+    # time.sleep(5)
+    risk_carlacola(risks[1])
+    risk_tunnel(risks[2])
+    risk_ped_park(risks[3])
+    risk_no_stop_cars(risks[4])
+    risk_front_sculpture(risks[5])
+    risk_traffic_jam(risks[6])
+
     started = True
-    for r in risks:
+    # for r in risks:
         # risk_bike_crossing(r)
+        # time.sleep(5)
         # risk_carlacola(r)
         # risk_tunnel(r)
         # risk_ped_park(r)
         # risk_no_stop_cars(r)
         # risk_front_sculpture(r)
-        return risk_traffic_jam(r)
+        # risk_traffic_jam(r)
         # for s in range(len(r.spawn_point)):
         #     r.add_vehicle(spawn_point=s)
         #     time.sleep(.1)
@@ -227,7 +245,7 @@ def risk_traffic_jam(r, threshold=60):
                     return True
 
 
-def risk_front_sculpture(r, threshold=65):
+def risk_front_sculpture(r, threshold=45):
     # sp 1, 0, 24
     # sps = [sp[1], sp[20], sp[0]]
     for s in range(3):
@@ -247,12 +265,13 @@ def risk_front_sculpture(r, threshold=65):
                 dist = distance_from_driver(driver_g, r)
                 r.add_vehicle(spawn_point=-1)
                 r.start_vehicle()
-                if int(dist) > threshold+20:
+                if int(dist) > threshold+10:
                     return True
 
 
 def risk_no_stop_cars(r, threshold=40):
     # sp 22, 5, 9, 12, 16, 23, 20
+    # r.spawn_point = [r.spawn_point[12], r.spawn_point[9], r.spawn_point[5], r.spawn_point[16], r.spawn_point[20], r.spawn_point[23], r.spawn_point[22]]
     # mid = [sp[12], sp[14], sp[5], sp[9], sp[19], sp[18], sp[16]]
     for s in range(len(r.spawn_point)):
         r.add_vehicle(spawn_point=s)
@@ -287,7 +306,7 @@ def risk_ped_park(r, threshold=50):
             return True
 
 
-def risk_tunnel(r, threshold=80):
+def risk_tunnel(r, threshold=60):
     # sp 3, 4
     r.add_vehicle(filter='toyota*')
     r.add_vehicle(spawn_point=1, filter='volk*')

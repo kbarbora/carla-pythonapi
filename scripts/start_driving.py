@@ -31,8 +31,13 @@ except IndexError:
 import steering_wheel_control as ControlSW
 import manual_control_attackwheel as ControlWheelAttack
 import spawn_npc as SpawnNPC
+import task_guide
 import carla
 
+
+vehicles_list = []
+walkers_list = []
+all_id = []
 
 # @TODO: replace parser for general purpose parser
 def main(parse=True, pre_parsed=False):
@@ -44,12 +49,12 @@ def main(parse=True, pre_parsed=False):
             raise Exception("Pre-parsed not completed")
         args = pre_parsed
 
-    vehicles_list = []
-    walkers_list = []
-    all_id = []
+    # vehicles_list = []
+    # walkers_list = []
+    # all_id = []
     try:
         _thread.start_new_thread(SpawnNPC.main, (args, vehicles_list, walkers_list, all_id))
-        # SpawnNPC.main(args)
+        _thread.start_new_thread(task_guide.main, ())
         clock = pygame.time.Clock()
         if args.cyberattack:
             print("Attack mode!")
@@ -58,16 +63,31 @@ def main(parse=True, pre_parsed=False):
         else:
             ControlSW.start(args, clock, None)
     finally:
-        client = carla.Client(args.host, args.port)
-        print('destroying %d vehicles' % len(vehicles_list))
-        client.apply_batch([carla.command.DestroyActor(x) for x in vehicles_list])
+        destroy_NPC(args)
+        # client = carla.Client(args.host, args.port)
+        # print('destroying %d vehicles' % len(vehicles_list))
+        # client.apply_batch([carla.command.DestroyActor(x) for x in vehicles_list])
+        #
+        # # stop walker controllers (list is [controler, actor, controller, actor ...])
+        # for i in range(0, len(all_id), 2):
+        #     client.get_world().get_actors(all_id)[i].stop()
+        #
+        # print('destroying %d walkers' % len(walkers_list))
+        # client.apply_batch([carla.command.DestroyActor(x) for x in all_id])
 
-        # stop walker controllers (list is [controler, actor, controller, actor ...])
-        for i in range(0, len(all_id), 2):
-            client.get_world().get_actors(all_id)[i].stop()
 
-        print('destroying %d walkers' % len(walkers_list))
-        client.apply_batch([carla.command.DestroyActor(x) for x in all_id])
+def destroy_NPC(args):
+    client = carla.Client(args.host, args.port)
+    print('destroying %d vehicles' % len(vehicles_list))
+    client.apply_batch([carla.command.DestroyActor(x) for x in vehicles_list])
+
+    # stop walker controllers (list is [controler, actor, controller, actor ...])
+    for i in range(0, len(all_id), 2):
+        client.get_world().get_actors(all_id)[i].stop()
+
+    print('destroying %d walkers' % len(walkers_list))
+    client.apply_batch([carla.command.DestroyActor(x) for x in all_id])
+    return
 
 
 def parser():
