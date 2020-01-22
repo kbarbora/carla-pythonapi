@@ -1,0 +1,7 @@
+steer=+20
+throttle=0
+brake=0
+interval=20
+initial=0
+restablished=0
+repetitions=5

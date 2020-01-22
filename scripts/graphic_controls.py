@@ -25,6 +25,19 @@ except ImportError:
 # -- CameraManager -------------------------------------------------------------
 # ==============================================================================
 
+"""
+Welcome to CARLA driving simulator.
+Instructions:
+    Use steering wheel to change the direction
+    Use gas pedal (right pedal) to accelerate
+    Use brake pedal (left pedal) to stop
+    Use left paddle in steering wheel to enable/disable reverse
+    Use R2 button in steering wheel to advance to the next task (need to be at the end position)
+    Use L2 button to restart the current task
+    Use option button to display this screen
+
+
+"""
 
 class CameraManager(object):
     def __init__(self, parent_actor, hud):
@@ -133,7 +146,8 @@ class HUD(object):
         mono = pygame.font.match_font(default_font)
         self._font_mono = pygame.font.Font(mono, 26)
         self._notifications = FadingText(font, (width, 40), (0, height - 40))
-        self.help = HelpText(pygame.font.Font(mono, 24), width, height, doc)
+        self.help = HelpText(pygame.font.Font(mono, 20), width+300, height, doc)
+        print(self.help)
         self.server_fps = 0
         self.frame = 0
         self.simulation_time = 0
@@ -171,29 +185,29 @@ class HUD(object):
         if str(traffic_light) == 'Red':
             encounter_red_light = True
             stopped_at_red_light = True if speed <= 1 else False
-            # print("RED LIGHT")
+            print("RED LIGHT")
             # print('Stoped: ' + str(stopped_at_red_light))
         else:
             encounter_red_light = False
             stopped_at_red_light = False
 
-        physics = world.player.get_physics_control()
-        torque_curve = physics.torque_curve
-        max_rpm = str(physics.max_rpm)[0:4]
-        moi = str(physics.moi)[0:4]
-        drft = str(physics.damping_rate_full_throttle)[0:4]
+        # physics = world.player.get_physics_control()
+        # torque_curve = physics.torque_curve
+        # max_rpm = str(physics.max_rpm)[0:4]
+        # moi = str(physics.moi)[0:4]
+        # drft = str(physics.damping_rate_full_throttle)[0:4]
         # drztce = str(str(physics.damping_rate_zero_throttle_clutch_engaged))[0:4]
-        drztcd = str(physics.damping_rate_zero_throttle_clutch_disengaged)[0:4]
+        # drztcd = str(physics.damping_rate_zero_throttle_clutch_disengaged)[0:4]
         # automatic_trans = str(physics.use_gear_autobox)
         # gear_switch_time = str(physics.gear_switch_time)[0:4]
         # clutch_strength = str(physics.clutch_strength)[0:4]
-        final_ratio = str(physics.final_ratio)[0:4]
+        # final_ratio = str(physics.final_ratio)[0:4]
         # forward_gears = physics.forward_gears
-        mass = str(physics.mass)
-        drag_coefficient = str(physics.drag_coefficient)[0:4]
-        center_of_mass = str(physics.center_of_mass.x)[0:4] + ' ' + str(physics.center_of_mass.y)[0:4] + ' ' + str(physics.center_of_mass.z)[0:4]
-        steering_curve = str(physics.steering_curve)
-        wheels = str(physics.wheels)
+        # mass = str(physics.mass)
+        # drag_coefficient = str(physics.drag_coefficient)[0:4]
+        # center_of_mass = str(physics.center_of_mass.x)[0:4] + ' ' + str(physics.center_of_mass.y)[0:4] + ' ' + str(physics.center_of_mass.z)[0:4]
+        # steering_curve = str(physics.steering_curve)
+        # wheels = str(physics.wheels)
 
         heading = 'N' if abs(t.rotation.yaw) < 89.5 else ''
         heading += 'S' if abs(t.rotation.yaw) > 90.5 else ''
@@ -216,7 +230,7 @@ class HUD(object):
 
         self._info_text = [
             'Time: % 9s' % elapsed_time,
-            'Speed:   % 1.0f mph' % speed,
+            'Speed:   % 1.0f /% 1.0f ' % (speed, sl),
             ('Steer:', c.steer, -1.0, 1.0)]
         self.log_data =\
             '{:.2f},'.format(speed) + \
@@ -271,11 +285,6 @@ class HUD(object):
     def render(self, display):
         # if not self._show_info:
         if self._show_info:
-            # --------Display a black bar to contain the hud data
-            # info_surface = pygame.Surface((self.dim[1], 220))
-            # info_surface.set_alpha(100)
-            # display.blit(info_surface, (0, 0))
-            # ---------------------------------------------------
             v_offset = 4
             bar_h_offset = 100
             bar_width = 106

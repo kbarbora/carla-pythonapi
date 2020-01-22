@@ -2,7 +2,7 @@ import time
 
 import carla
 from carla_exception import *
-import math
+import _thread
 import sys
 if sys.version_info >= (3, 0):
     from configparser import ConfigParser
@@ -51,7 +51,10 @@ except ImportError:
 # ==============================================================================
 
 
+
+
 class DualControl(object):
+
     def __init__(self, world, start_in_autopilot, attack, task_level):
         self._autopilot_enabled = start_in_autopilot
         if isinstance(world.player, carla.Vehicle):
@@ -76,7 +79,14 @@ class DualControl(object):
             self._attack_ended = False
         self._attack_control = False
         self.k_values = [1.0, 1.0, 1.0]
-        world.hud.notification("Press 'H' or '?' for help.", seconds=4.0)
+        self._play_sound = False
+        self._acc_sound = SoundEffect.init_sound()['acc']
+        self._horn_sound = SoundEffect.init_sound()['horn']
+        # self._acc_sound.set_volume(0)
+        # self._acc_sound.play()
+        _thread.start_new_thread(SoundEffect.engine_sound_loop, ())
+        world.hud.help.toggle()
+        # world.hud.notification("Press 'option' or '?' for help.", seconds=4.0)
 
         # initialize steering wheel
         pygame.joystick.init()
@@ -103,8 +113,10 @@ class DualControl(object):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return True
-            elif event.type == pygame.JOYBUTTONDOWN:
+            if event.type == pygame.JOYBUTTONDOWN:
                 print("Button pressed in Joystick ->" + str(event.button))
+                if event.button == 10:
+                    self._horn_sound.play()
                 if event.button == 7:
                     raise RestartTask
                 if event.button == 6:
@@ -127,8 +139,10 @@ class DualControl(object):
                     self._control.gear = 1 if self._control.reverse else -1
                 elif event.button == 23:
                     world.camera_manager.next_sensor()
+                elif event.button == 9:
+                    world.hud.help.toggle()
 
-            elif event.type == pygame.KEYUP:
+            if event.type == pygame.KEYUP:
                 if self._is_quit_shortcut(event.key):
                     return True
                 elif event.key == K_BACKSPACE:
@@ -171,6 +185,7 @@ class DualControl(object):
                 # self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time())
                 if self._attack_control and (not self._attack_ended):
                     self._parse_vehicle_wheel_attack()
+
                 self._parse_vehicle_wheel()
                 self._control.reverse = self._control.gear < 0
             # elif isinstance(self._control, carla.WalkerControl):
@@ -190,7 +205,6 @@ class DualControl(object):
         This function will be executed only where there is NOT an attack going on
         """
         numAxes, jsInputs, jsButtons = self._get_joystick()
-
         # Custom function to map range of inputs [1, -1] to outputs [0, 1] i.e 1 from inputs means nothing is pressed
         # For the steering, it seems fine as it is
         # steerCmd = self.k_values[0] * math.tan(0.78 * jsInputs[self._steer_idx])
@@ -199,12 +213,12 @@ class DualControl(object):
         # @TODO: Disable acceleration at the beginning of the trial
         # throttleCmd = self.k_values[1] + (2.05 * math.log10(
         #     -0.7 * jsInputs[self._throttle_idx] + 1.4) - 1.2) / 0.92
+        # print(jsInputs[self._throttle_idx])
         throttleCmd = self.k_values[1] * abs((jsInputs[self._throttle_idx] / 2 + .5) - 1)
         if throttleCmd <= 0.01:
             throttleCmd = 0
         elif throttleCmd > 1:
             throttleCmd = 1
-        # print(throttleCmd)
 
         # @TODO: Disable brake at the beginning of the trial
         brakeCmd = self.k_values[2] * abs(jsInputs[self._brake_idx] - 1)
@@ -273,3 +287,63 @@ class DualControl(object):
     @staticmethod
     def _is_quit_shortcut(KEY):
         return (KEY == K_ESCAPE) or (KEY == K_q and pygame.key.get_mods() & KMOD_CTRL)
+
+
+class SoundEffect(object):
+
+    acc = None
+    start = None
+    engine = None
+
+    def __init__(self, audio_file, volume=1, channel=0, loop=0):
+        self._sound = pygame.mixer.Sound(audio_file)
+        self._sound.set_volume(volume)
+        self._volume = self._sound.get_volume()
+        self._length = self._sound.get_length()
+        self._channel = pygame.mixer.Channel(channel)
+        self._loop = loop
+
+    def set_channel(self, channel=0):
+        self._channel = pygame.mixer.Channel(channel)
+
+    def set_volume(self, volume):
+        self._sound.set_volume(volume)
+        self._volume = volume
+
+    def play(self, fade=0):
+        if fade:
+            self._sound.play(loops=-1, fade_ms=fade)
+        else:
+            self._channel.play(self._sound, loops=self._loop)
+
+    @staticmethod
+    def engine_sound_loop():
+        door.play()
+        time.sleep(3)
+        start.play()
+        engine.play(fade=3000)
+        time.sleep(.5)
+        # acc.play()
+
+    @staticmethod
+    def init_sound():
+        global engine, start, acc, door
+        pygame.mixer.init()
+        CAR_ENGINE_CH = 1
+        START_ENGINE_CH = 2
+        MAX_ACC_CH = 3
+        HORN = 4
+        door = SoundEffect('../media/sound/cardoor.wav')
+        horn = SoundEffect('../media/sound/horn.wav', channel=HORN)
+        engine = SoundEffect('../media/sound/car_engine.wav', channel=CAR_ENGINE_CH, loop=-1)
+        start = SoundEffect('../media/sound/start_engine.wav', channel=START_ENGINE_CH)
+        # acc = SoundEffect('../sound/max_acc1.wav', channel=MAX_ACC_CH, volume=1, loop=-1)
+        acc = []
+        for i in range(2, 12, 2):
+            acc.append(SoundEffect('../media/sound/acc'+str(i)+'.wav', channel=MAX_ACC_CH, volume=0))
+        return {'door': door, 'start': start, 'engine': engine, 'acc': acc, 'horn': horn}
+
+
+
+
+

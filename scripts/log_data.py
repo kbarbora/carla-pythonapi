@@ -15,7 +15,7 @@ Currently not in use
 
 
 import argparse
-import glob, os, sys, random, time, traceback
+import sys, traceback
 sys.path.append('../carla/dist/carla-0.9.5-py3-linux-x86_64.egg')
 # try:
 #     sys.path.append(glob.glob('../carla/dist/carla-*%d-%s.egg' % (
@@ -25,7 +25,7 @@ sys.path.append('../carla/dist/carla-0.9.5-py3-linux-x86_64.egg')
 #     pass
 
 import carla
-from examples.steering_wheel_control import HUD as driving_session
+from scripts.steering_wheel_control import HUD as driving_session
 
 
 def init():

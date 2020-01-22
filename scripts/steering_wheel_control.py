@@ -28,7 +28,18 @@
 # ==============================================================================
 
 """
-Welcome to CARLA manual control with steering wheel Logitech G29.
+Welcome to CARLA driving simulator.
+Instructions:
+    Use steering wheel to change the direction
+    Use gas pedal (right pedal) to accelerate
+    Use brake pedal (left pedal) to stop
+    Use [left paddle] in steering wheel to enable/disable reverse
+    Use [R2] button in steering wheel to advance to the next task
+    (need to be at the end position)
+    Use [L2] button to restart the current task
+    Use [option] button to display this screen
+
+
 """
 
 from __future__ import print_function
@@ -65,6 +76,7 @@ from controllers import DualControl
 from text import FadingText, HelpText
 from graphic_controls import CameraManager, HUD
 import carla
+import gps_map
 from carla_exception import *
 import start_driving
 import risk_decisions
@@ -205,10 +217,6 @@ class World(object):
                 actor.destroy()
 
 
-# ==============================================================================
-# -- game_loop() ---------------------------------------------------------------
-# ==============================================================================
-
 def get_actor_display_name(actor, truncate=250):
     name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
     return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
@@ -219,6 +227,10 @@ def find_weather_presets():
     name = lambda x: ' '.join(m.group(0) for m in rgx.finditer(x))
     presets = [x for x in dir(carla.WeatherParameters) if re.match('[A-Z].+', x)]
     return [(getattr(carla.WeatherParameters, x), name(x)) for x in presets]
+
+# ==============================================================================
+# ------Main loop---------------------------------------------------------------
+# ==============================================================================
 
 
 def game_loop(args, clock):
@@ -259,7 +271,6 @@ def game_loop(args, clock):
             clock.tick_busy_loop(40)    # max fps in client
             if controller.parse_events(world, clock):
                 return
-            # hud.write_driving_data(log)
             world.tick(clock)
             world.render(display)
             pygame.display.flip()

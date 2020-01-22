@@ -37,6 +37,7 @@ Welcome to CARLA No-Rendering Mode Visualizer
 import glob
 import os
 import sys
+import thread
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -268,7 +269,7 @@ class HUD (object):
             (self.dim[0], 40), (0, self.dim[1] - 40))
 
     def _init_data_params(self):
-        self.show_info = True
+        self.show_info = False
         self.show_actor_ids = False
         self._info_text = {}
 
@@ -396,12 +397,9 @@ class TrafficLightSurfaces(object):
 
 
 class MapImage(object):
-    def __init__(self, carla_world, carla_map, pixels_per_meter, show_triggers, show_connections, show_spawn_points):
+    def __init__(self, carla_world, carla_map, pixels_per_meter):
         self._pixels_per_meter = pixels_per_meter
         self.scale = 1.0
-        self.show_triggers = show_triggers
-        self.show_connections = show_connections
-        self.show_spawn_points = show_spawn_points
 
         waypoints = carla_map.generate_waypoints(2)
         margin = 50
@@ -433,8 +431,8 @@ class MapImage(object):
         opendrive_hash = str(hash_func.hexdigest())
 
         filename = carla_map.name + "_" + opendrive_hash + ".tga"
-        dirname = os.path.join("cache","no_rendering_mode")
-        full_path = str(os.path.join(dirname,filename))
+        dirname = os.path.join("cache", "no_rendering_mode")
+        full_path = str(os.path.join(dirname, filename))
 
         if os.path.isfile(full_path):
             # Load Image
@@ -605,7 +603,7 @@ class MapImage(object):
                     world_to_pixel(x) for x in [
                         left, start, right]], 4)
 
-        def draw_traffic_signs(surface, font_surface, actor, color=COLOR_ALUMINIUM_2, trigger_color=COLOR_PLUM_0):
+        def draw_traffic_signs(surface, font_surface, actor, color=COLOR_ALUMINIUM_2):
             transform = actor.get_transform()
             waypoint = carla_map.get_waypoint(transform.location)
 
@@ -625,12 +623,6 @@ class MapImage(object):
 
             line_pixel = [world_to_pixel(p) for p in line]
             pygame.draw.lines(surface, color, True, line_pixel, 2)
-
-            # draw bounding box
-            if self.show_triggers:
-                corners = Util.get_bounding_box(actor)
-                corners = [world_to_pixel(p) for p in corners]
-                pygame.draw.lines(surface, trigger_color, True, corners, 2)
 
         # def draw_crosswalk(surface, transform=None, color=COLOR_ALUMINIUM_2):
         #     # Given two points A and B, draw white parallel lines from A to B
@@ -795,10 +787,10 @@ class MapImage(object):
             yield_font_surface, (yield_font_surface.get_width(), yield_font_surface.get_height() * 2))
 
         for ts_stop in stops:
-            draw_traffic_signs(map_surface, stop_font_surface, ts_stop, trigger_color=COLOR_SCARLET_RED_1)
+            draw_traffic_signs(map_surface, stop_font_surface, ts_stop)
 
         for ts_yield in yields:
-            draw_traffic_signs(map_surface, yield_font_surface, ts_yield, trigger_color=COLOR_ORANGE_1)
+            draw_traffic_signs(map_surface, yield_font_surface, ts_yield)
 
     def world_to_pixel(self, location, offset=(0, 0)):
         x = self.scale * self._pixels_per_meter * (location.x - self._world_offset[0])
@@ -861,14 +853,10 @@ class World(object):
             self.client = carla.Client(self.args.host, self.args.port)
             self.client.set_timeout(self.timeout)
 
-            if self.args.map is None:
-                world = self.client.get_world()
-            else:
-                world = self.client.load_world(self.args.map)
+            world = self.client.get_world()
 
             town_map = world.get_map()
-            return (world, town_map)
-
+            return world, town_map
         except RuntimeError as ex:
             logging.error(ex)
             exit_game()
@@ -877,17 +865,13 @@ class World(object):
         self.world, self.town_map = self._get_data_from_carla()
 
         settings = self.world.get_settings()
-        settings.no_rendering_mode = self.args.no_rendering
         self.world.apply_settings(settings)
 
         # Create Surfaces
         self.map_image = MapImage(
             carla_world=self.world,
             carla_map=self.town_map,
-            pixels_per_meter=PIXELS_PER_METER,
-            show_triggers=self.args.show_triggers,
-            show_connections=self.args.show_connections,
-            show_spawn_points=self.args.show_spawn_points)
+            pixels_per_meter=PIXELS_PER_METER)
 
         self._hud = hud
         self._input = input_control
@@ -923,36 +907,35 @@ class World(object):
         self.select_hero_actor()
         self.hero_actor.set_autopilot(False)
         self._input.wheel_offset = HERO_DEFAULT_SCALE
-        self._input.control = carla.VehicleControl()
+        # self._input.control = carla.VehicleControl()
 
         weak_self = weakref.ref(self)
         self.world.on_tick(lambda timestamp: World.on_world_tick(weak_self, timestamp))
+        return
 
     def select_hero_actor(self):
         hero_vehicles = [actor for actor in self.world.get_actors(
         ) if 'vehicle' in actor.type_id and actor.attributes['role_name'] == 'hero']
         if len(hero_vehicles) > 0:
-            self.hero_actor = random.choice(hero_vehicles)
-            self.hero_transform = self.hero_actor.get_transform()
-        else:
-            self._spawn_hero()
-
-    def _spawn_hero(self):
-        # Get a random blueprint.
-        blueprint = random.choice(self.world.get_blueprint_library().filter(self.args.filter))
-        blueprint.set_attribute('role_name', 'hero')
-        if blueprint.has_attribute('color'):
-            color = random.choice(blueprint.get_attribute('color').recommended_values)
-            blueprint.set_attribute('color', color)
-        # Spawn the player.
-        while self.hero_actor is None:
-            spawn_points = self.world.get_map().get_spawn_points()
-            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
-            self.hero_actor = self.world.try_spawn_actor(blueprint, spawn_point)
+            self.hero_actor = hero_vehicles[0]
         self.hero_transform = self.hero_actor.get_transform()
 
-        # Save it in order to destroy it when closing program
-        self.spawned_hero = self.hero_actor
+    # def _spawn_hero(self):
+#         # Get a random blueprint.
+#         blueprint = random.choice(self.world.get_blueprint_library().filter(self.args.filter))
+#         blueprint.set_attribute('role_name', 'hero')
+#         if blueprint.has_attribute('color'):
+#             color = random.choice(blueprint.get_attribute('color').recommended_values)
+#             blueprint.set_attribute('color', color)
+#         # Spawn the player.
+#         while self.hero_actor is None:
+#             spawn_points = self.world.get_map().get_spawn_points()
+#             spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
+#             self.hero_actor = self.world.try_spawn_actor(blueprint, spawn_point)
+#         self.hero_transform = self.hero_actor.get_transform()
+#
+#         # Save it in order to destroy it when closing program
+#         self.spawned_hero = self.hero_actor
 
     def tick(self, clock):
         actors = self.world.get_actors()
@@ -1055,11 +1038,6 @@ class World(object):
             world_pos = tl.get_location()
             pos = world_to_pixel(world_pos)
 
-            if self.args.show_triggers:
-                corners = Util.get_bounding_box(tl)
-                corners = [world_to_pixel(p) for p in corners]
-                pygame.draw.lines(surface, COLOR_BUTTER_1, True, corners, 2)
-
             if self.hero_actor is not None:
                 corners = Util.get_bounding_box(tl)
                 corners = [world_to_pixel(p) for p in corners]
@@ -1096,11 +1074,6 @@ class World(object):
 
             limit = sl.type_id.split('.')[2]
             font_surface = font.render(limit, True, COLOR_ALUMINIUM_5)
-
-            if self.args.show_triggers:
-                corners = Util.get_bounding_box(sl)
-                corners = [world_to_pixel(p) for p in corners]
-                pygame.draw.lines(surface, COLOR_PLUM_2, True, corners, 2)
 
             # Blit
             if self.hero_actor is not None:
@@ -1206,10 +1179,9 @@ class World(object):
             traffic_lights,
             speed_limits,
             walkers)
-
         # Render Ids
         self._hud.render_vehicles_ids(self.vehicle_id_surface, vehicles,
-                                            self.map_image.world_to_pixel, self.hero_actor, self.hero_transform)
+            self.map_image.world_to_pixel, self.hero_actor, self.hero_transform)
 
         # Blit surfaces
         surfaces = ((self.map_image.surface, (0, 0)),
@@ -1299,7 +1271,7 @@ class InputControl(object):
         self._hud = hud
         self._world = world
 
-        self._hud.notification("Press 'H' or '?' for help.", seconds=4.0)
+        # self._hud.notification("Press 'H' or '?' for help.", seconds=4.0)
 
     def render(self, display):
         pass
@@ -1386,12 +1358,12 @@ class InputControl(object):
     def parse_input(self, clock):
         self._parse_events()
         self._parse_mouse()
-        if not self._autopilot_enabled:
-            if isinstance(self.control, carla.VehicleControl):
-                self._parse_keys(clock.get_time())
-                self.control.reverse = self.control.gear < 0
-            if (self._world.hero_actor is not None):
-                self._world.hero_actor.apply_control(self.control)
+        # if not self._autopilot_enabled:
+        #     if isinstance(self.control, carla.VehicleControl):
+        #         self._parse_keys(clock.get_time())
+        #         self.control.reverse = self.control.gear < 0
+        #     if (self._world.hero_actor is not None):
+        #         self._world.hero_actor.apply_control(self.control)
 
     @staticmethod
     def _is_quit_shortcut(key):
@@ -1407,27 +1379,28 @@ def game_loop(args):
     try:
         # Init Pygame
         pygame.init()
+        width = 640
+        height = 360
         display = pygame.display.set_mode(
-            (args.width, args.height),
-            pygame.HWSURFACE | pygame.DOUBLEBUF)
-        pygame.display.set_caption(args.description)
+            (width, height), pygame.HWSURFACE | pygame.DOUBLEBUF)
+        pygame.display.set_caption("CARLA GPS")
 
         font = pygame.font.Font(pygame.font.get_default_font(), 20)
         text_surface = font.render('Rendering map...', True, COLOR_WHITE)
-        display.blit(text_surface, text_surface.get_rect(center=(args.width / 2, args.height / 2)))
+        display.blit(text_surface, text_surface.get_rect(center=(width / 2, height / 2)))
         pygame.display.flip()
 
         # Init
         input_control = InputControl(TITLE_INPUT)
-        hud = HUD(TITLE_HUD, args.width, args.height)
+        hud = HUD(TITLE_HUD, width, height)
         world = World(TITLE_WORLD, args, timeout=2.0)
 
         # Start
         input_control.start(hud, world)
         hud.start()
         world.start(hud, input_control)
-
         clock = pygame.time.Clock()
+        parent = os.getppid()
         while True:
             clock.tick_busy_loop(60)
 
@@ -1443,10 +1416,12 @@ def game_loop(args):
             input_control.render(display)
 
             pygame.display.flip()
-
+            try:
+                os.kill(parent, 0)
+            except OSError:
+                sys.exit()
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
-
     finally:
         if world is not None:
             world.destroy()
@@ -1455,76 +1430,3 @@ def game_loop(args):
 def exit_game():
     pygame.quit()
     sys.exit()
-
-# ==============================================================================
-# -- Main --------------------------------------------------------------------
-# ==============================================================================
-
-
-def main():
-    # Parse arguments
-    argparser = argparse.ArgumentParser(
-        description='CARLA No Rendering Mode Visualizer')
-    argparser.add_argument(
-        '-v', '--verbose',
-        action='store_true',
-        dest='debug',
-        help='print debug information')
-    argparser.add_argument(
-        '--host',
-        metavar='H',
-        default='127.0.0.1',
-        help='IP of the host server (default: 127.0.0.1)')
-    argparser.add_argument(
-        '-p', '--port',
-        metavar='P',
-        default=2000,
-        type=int,
-        help='TCP port to listen to (default: 2000)')
-    argparser.add_argument(
-        '--res',
-        metavar='WIDTHxHEIGHT',
-        default='1280x720',
-        help='window resolution (default: 1280x720)')
-    argparser.add_argument(
-        '--filter',
-        metavar='PATTERN',
-        default='vehicle.*',
-        help='actor filter (default: "vehicle.*")')
-    argparser.add_argument(
-        '--map',
-        metavar='TOWN',
-        default=None,
-        help='start a new episode at the given TOWN')
-    argparser.add_argument(
-        '--no-rendering',
-        action='store_true',
-        help='switch off server rendering')
-    argparser.add_argument(
-        '--show-triggers',
-        action='store_true',
-        help='show trigger boxes of traffic signs')
-    argparser.add_argument(
-        '--show-connections',
-        action='store_true',
-        help='show waypoint connections')
-    argparser.add_argument(
-        '--show-spawn-points',
-        action='store_true',
-        help='show recommended spawn points')
-
-    args = argparser.parse_args()
-    args.description = argparser.description
-    args.width, args.height = [int(x) for x in args.res.split('x')]
-
-    log_level = logging.DEBUG if args.debug else logging.INFO
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)
-
-    logging.info('listening to server %s:%s', args.host, args.port)
-    print(__doc__)
-
-    game_loop(args)
-
-
-if __name__ == '__main__':
-    main()

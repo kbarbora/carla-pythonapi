@@ -33,7 +33,7 @@ import manual_control_attackwheel as ControlWheelAttack
 import spawn_npc as SpawnNPC
 import task_guide
 import carla
-
+import gps_map
 
 vehicles_list = []
 walkers_list = []
@@ -56,6 +56,12 @@ def main(parse=True, pre_parsed=False):
         _thread.start_new_thread(SpawnNPC.main, (args, vehicles_list, walkers_list, all_id))
         _thread.start_new_thread(task_guide.main, ())
         clock = pygame.time.Clock()
+        exit_all = False
+        map_pid = os.fork()
+        if map_pid == 0:
+            null = open(os.devnull, 'w')    # open /dev/null
+            sys.stdout = null               # ignore stdout
+            gps_map.game_loop(args)
         if args.cyberattack:
             print("Attack mode!")
             values = processes_attack_input(args.cyberattack)
@@ -117,7 +123,7 @@ def parser():
         '--res',
         metavar='WIDTHxHEIGHT',
         default='1920x1080',
-        help='window resolution (default: 1280x720)')
+        help='window resolution (default: 1920x1080)')
     argparser.add_argument(
         '--filter',
         metavar='PATTERN',
