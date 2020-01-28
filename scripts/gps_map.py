@@ -146,9 +146,10 @@ TITLE_INPUT = 'INPUT'
 PIXELS_PER_METER = 12
 
 MAP_DEFAULT_SCALE = 0.1
-HERO_DEFAULT_SCALE = 1.0
+HERO_DEFAULT_SCALE = .50
 
-PIXELS_AHEAD_VEHICLE = 150
+PIXELS_AHEAD_VEHICLE = 25
+# PIXELS_AHEAD_VEHICLE = 150
 
 # ==============================================================================
 # -- Util -----------------------------------------------------------
@@ -907,7 +908,7 @@ class World(object):
         self.select_hero_actor()
         self.hero_actor.set_autopilot(False)
         self._input.wheel_offset = HERO_DEFAULT_SCALE
-        # self._input.control = carla.VehicleControl()
+        self._input.control = carla.VehicleControl()
 
         weak_self = weakref.ref(self)
         self.world.on_tick(lambda timestamp: World.on_world_tick(weak_self, timestamp))
@@ -1270,7 +1271,6 @@ class InputControl(object):
     def start(self, hud, world):
         self._hud = hud
         self._world = world
-
         # self._hud.notification("Press 'H' or '?' for help.", seconds=4.0)
 
     def render(self, display):
@@ -1375,15 +1375,16 @@ class InputControl(object):
 # ==============================================================================
 
 
-def game_loop(args):
+def game_loop(args, display=0):
     try:
         # Init Pygame
         pygame.init()
-        width = 640
-        height = 360
-        display = pygame.display.set_mode(
-            (width, height), pygame.HWSURFACE | pygame.DOUBLEBUF)
-        pygame.display.set_caption("CARLA GPS")
+        width = 352
+        height = 198
+        if display:
+            display = pygame.display.set_mode(
+                (width, height), pygame.HWSURFACE | pygame.DOUBLEBUF)
+            pygame.display.set_caption("CARLA GPS")
 
         font = pygame.font.Font(pygame.font.get_default_font(), 20)
         text_surface = font.render('Rendering map...', True, COLOR_WHITE)
@@ -1394,6 +1395,7 @@ def game_loop(args):
         input_control = InputControl(TITLE_INPUT)
         hud = HUD(TITLE_HUD, width, height)
         world = World(TITLE_WORLD, args, timeout=2.0)
+        # main_surface = world.result_surface
 
         # Start
         input_control.start(hud, world)
@@ -1407,13 +1409,13 @@ def game_loop(args):
             # Tick
             world.tick(clock)
             hud.tick(clock)
-            input_control.tick(clock)
+            # input_control.tick(clock)
 
             # Render
             display.fill(COLOR_ALUMINIUM_4)
             world.render(display)
             hud.render(display)
-            input_control.render(display)
+            # input_control.render(display)
 
             pygame.display.flip()
             try:
@@ -1422,9 +1424,9 @@ def game_loop(args):
                 sys.exit()
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
-    finally:
-        if world is not None:
-            world.destroy()
+    # finally:
+    #     if world is not None:
+    #         world.destroy()
 
 
 def exit_game():

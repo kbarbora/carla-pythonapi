@@ -80,14 +80,9 @@ import gps_map
 from carla_exception import *
 import start_driving
 import risk_decisions
-from carla import ColorConverter as cc
-import collections
-import datetime
 import logging
-import math
 import random
 import re
-import weakref
 if sys.version_info >= (3, 0):
     from configparser import ConfigParser
 else:
@@ -267,6 +262,7 @@ def game_loop(args, clock):
             controller = DualControl(world, args.autopilot, None, args.tasklevel)
         time.sleep(1.5)
         thread.start_new_thread(hud.write_driving_data, (True,))
+        # thread.start_new_thread(gps_map.game_loop, (args, display))
         while True:
             clock.tick_busy_loop(40)    # max fps in client
             if controller.parse_events(world, clock):

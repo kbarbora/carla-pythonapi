@@ -39,6 +39,8 @@ Instructions:
 
 """
 
+DATA_INTERVAL = 0.5
+
 class CameraManager(object):
     def __init__(self, parent_actor, hud):
         self.sensor = None
@@ -185,7 +187,7 @@ class HUD(object):
         if str(traffic_light) == 'Red':
             encounter_red_light = True
             stopped_at_red_light = True if speed <= 1 else False
-            print("RED LIGHT")
+            # print("RED LIGHT")
             # print('Stoped: ' + str(stopped_at_red_light))
         else:
             encounter_red_light = False
@@ -267,7 +269,7 @@ class HUD(object):
                     self.log.write('{},{}\n'.format(counter, self.log_data))
                     self.log.close()
             # log.write(str(counter) +',' +self.log_data + '\n')
-            time.sleep(.1)   # log data interval
+            time.sleep(DATA_INTERVAL)  # log data interval
             counter += 1
             if not keep_writing:
                 break

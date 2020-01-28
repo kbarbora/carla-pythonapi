@@ -61,7 +61,7 @@ def main(parse=True, pre_parsed=False):
         if map_pid == 0:
             null = open(os.devnull, 'w')    # open /dev/null
             sys.stdout = null               # ignore stdout
-            gps_map.game_loop(args)
+            gps_map.game_loop(args, 1)
         if args.cyberattack:
             print("Attack mode!")
             values = processes_attack_input(args.cyberattack)
