@@ -10,22 +10,25 @@ class EntryWindow(Gtk.Window):
         self.set_size_request(300, 100)
 
         self.timeout_id = None
-
+        self.connect("destroy", Gtk.main_quit)
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.add(vbox)
 
-        self.set_icon_from_file(os.path.join('..', 'media', 'images', 'car_icon.png'))
+        self.image_back = Gtk.Image.new_from_file('../media/images/map_icon.png')
+        # vbox.pack_start()
 
         self.entry = Gtk.Entry()
         self.entry.set_text("Driver ID")
+        self.entry.connect("activate", self.on_click)   # listen for enter key in entry
         vbox.pack_start(self.entry, True, True, 0)
 
         hbox = Gtk.Box(spacing=6)
         vbox.pack_start(hbox, True, True, 0)
 
         button = Gtk.Button.new_with_label("Start")
-        button.connect("clicked", self.on_click)
+        button.connect("clicked", self.on_click)    # listen for button click
         vbox.pack_start(button, True, True, 0)
+        return
 
     def on_editable_toggled(self, button):
         value = button.get_active()
@@ -47,7 +50,9 @@ class EntryWindow(Gtk.Window):
             self.entry.set_progress_pulse_step(0)
 
     def on_click(self, widget, callback_data=None):
-        print(win.entry.get_text())
+        # print(win.entry.get_text())
+        Gtk.main_quit()
+        return self.entry.get_text()
 
     def do_pulse(self, user_data):
         self.entry.progress_pulse()
@@ -62,9 +67,17 @@ class EntryWindow(Gtk.Window):
             icon_name)
 
 
+def main():
+    win = EntryWindow()
+    try:
+        win.show_all()
+        win.connect("destroy", Gtk.main_quit)
+        Gtk.main()
+    finally:
+        # Gtk.main_level()
+        Gtk.main_quit()
+        return win.entry.get_text()
 
-win = EntryWindow()
-print(win.entry.get_text())
-win.connect("destroy", Gtk.main_quit)
-win.show_all()
-Gtk.main()
+
+if __name__ == '__main__':
+    main()

@@ -37,6 +37,7 @@ Welcome to CARLA No-Rendering Mode Visualizer
 import glob
 import os
 import sys
+import time
 import thread
 
 try:
@@ -1378,9 +1379,11 @@ class InputControl(object):
 def game_loop(args, display=0):
     try:
         # Init Pygame
+        os.environ['SDL_VIDEO_WINDOW_POS'] = "0,0"
         pygame.init()
         width = 352
         height = 198
+        time.sleep(3)
         if display:
             display = pygame.display.set_mode(
                 (width, height), pygame.HWSURFACE | pygame.DOUBLEBUF)

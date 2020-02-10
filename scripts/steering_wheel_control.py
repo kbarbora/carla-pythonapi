@@ -39,6 +39,9 @@ Instructions:
     Use [L2] button to restart the current task
     Use [option] button to display this screen
 
+    1. Press GAS Pedal
+    2. Press Brake Pedal
+    3. Press [option] button to start driving
 
 """
 
@@ -48,6 +51,7 @@ from __future__ import print_function
 # -- find carla module ---------------------------------------------------------
 # ==============================================================================
 import _thread
+import datetime
 
 import thread
 import glob
@@ -229,8 +233,7 @@ def find_weather_presets():
 
 
 def game_loop(args, clock):
-    global hud, log, k_values, attack
-
+    global hud, k_values, attack, controller
     k_values = [1.0, 1.6, 1.6]
     # attack_performed = 0
     if attack:
@@ -248,18 +251,17 @@ def game_loop(args, clock):
         client.set_timeout(2.0)     # timeout in case the client loses connection
 
         log = create_logfile(args)
-
         display = pygame.display.set_mode(
             (args.width, args.height),
             pygame.HWSURFACE | pygame.DOUBLEBUF)
 
-        hud = HUD(args.width, args.height, log, __doc__)
+        hud = HUD(args, log, __doc__)
         world = World(client.get_world(), hud, args.filter)
         if attack:
-            controller = DualControl(world, args.autopilot, attack, args.tasklevel)
+            controller = DualControl(world, attack, args.tasklevel)
             thread.start_new_thread(controller.attack_counter, ())
         else:
-            controller = DualControl(world, args.autopilot, None, args.tasklevel)
+            controller = DualControl(world, None, args.tasklevel)
         time.sleep(1.5)
         thread.start_new_thread(hud.write_driving_data, (True,))
         # thread.start_new_thread(gps_map.game_loop, (args, display))
@@ -295,12 +297,12 @@ def start(args, clock, attack_values):
         attack = None
     args.width, args.height = [int(x) for x in args.res.split('x')]
 
-    log_level = logging.DEBUG if args.debug else logging.INFO
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)
+    # log_level = logging.DEBUG if args.debug else logging.INFO
+    # logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)
 
-    logging.info('listening to server %s:%s', args.host, args.port)
-
-    print(__doc__)
+    # logging.info('listening to server %s:%s', args.host, args.port)
+    if args.debug:
+        print(__doc__)
     try:
         game_loop(args, clock)
     except RestartTask:
@@ -329,7 +331,7 @@ def start(args, clock, attack_values):
 
 
 def create_logfile(args):
-    global log
+    global attack
     if not os.path.isdir(args.log_filepath):
         # @todo Create custom exception
         raise Exception("log filepath " + args.log_filepath + " does not exists.")
@@ -337,21 +339,24 @@ def create_logfile(args):
     if not bool(dir_permission.st_mode & stat.S_IWUSR):
         # @todo Create custom exception
         raise Exception("log filepath: " + args.log_filepath + " has not write permission. Try with sudo.")
-    logname = format_logname(args)
+    logname = _format_logname(args)
     log = open(args.log_filepath + logname, 'w')
-    log.write('Seconds,Speed,Heading,Location,Throttle,Steer,Brake,Reverse,' +
-              'Near Vehicles,Over SL,' +
-              'Red Light,Stopped RL,Notifications\n')
-    # log.write('Seconds,Speed,Heading,Location,Throttle,Steer,Brake,Reverse,' +
-    #           'Near Vehicles,Over SL,' +
-    #           'Red Light,Stopped RL,Max RPM, MoI, DRFT, DRZTCE, DRZTCD, Final Ratio,' +
-    #           'Mass,Drag,MassCenter,Notifications\n')
+    log.write('50ms,Time,Speed,Heading,Location,Throttle,Steer,Brake,Reverse,' +
+                  'Near Vehicles,Over Speed,Sign,Stopped,maxRPM,Notifications')
+    if attack:
+        log.write(',Attack,Actuator,Delta,Repetitions,Kvalues,Ended\n')
+    else:
+        log.write('\n')
     return log
 
 
-def format_logname(args):
-    # time_now = str(datetime.datetime.now()).replace(' ', '-')
-    # time_now = time_now[:time_now.index('.')]       # delete anything beyond seconds
-    # time_now = time_now.replace(':', '')
-    # return str(args.username) + '_' + str(time_now) + ".log"
-    return "driver.csv"  # @todo Placeholder for debug purposes
+def _format_logname(args):
+    global attack
+    time_now = str(datetime.datetime.now()).replace(' ', '-')
+    time_now = time_now[:time_now.index('.')]       # delete anything beyond seconds
+    time_now = time_now.replace(':', '')[5:]        # remove year from log
+    if attack:
+        return str(args.username) + '_' + str(time_now) + "a.csv"
+    else:
+        return str(args.username) + '_' + str(time_now) + ".csv"
+    # return str(args.username) + ".csv"

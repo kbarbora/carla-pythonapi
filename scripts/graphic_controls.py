@@ -7,6 +7,7 @@ import datetime
 import time
 import math
 import weakref
+import steering_wheel_control as ControlSW
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
@@ -140,16 +141,16 @@ class CameraManager(object):
 
 
 class HUD(object):
-    def __init__(self, width, height, log, doc):
-        self.dim = (width, height)
+    def __init__(self, args, log, doc):
+        self.dim = (args.width, args.height)
         font = pygame.font.Font(pygame.font.get_default_font(), 20)
         fonts = [x for x in pygame.font.get_fonts() if 'mono' in x]
         default_font = 'ubuntumono'
         mono = pygame.font.match_font(default_font)
+        self.args = args
         self._font_mono = pygame.font.Font(mono, 26)
-        self._notifications = FadingText(font, (width, 40), (0, height - 40))
-        self.help = HelpText(pygame.font.Font(mono, 20), width+300, height, doc)
-        print(self.help)
+        self._notifications = FadingText(font, (self.dim[0], 40), (0, self.dim[1] - 40))
+        self.help = HelpText(pygame.font.Font(mono, 20), self.dim[0]+300, self.dim[1], doc)
         self.server_fps = 0
         self.frame = 0
         self.simulation_time = 0
@@ -158,6 +159,10 @@ class HUD(object):
         self.log_data = ""
         self.log = log
         self._server_clock = pygame.time.Clock()
+        if args.cyberattack:
+            self.attack = True
+        else:
+            self.attack = False
 
     def on_world_tick(self, timestamp):
         self._server_clock.tick()
@@ -193,9 +198,9 @@ class HUD(object):
             encounter_red_light = False
             stopped_at_red_light = False
 
-        # physics = world.player.get_physics_control()
+        physics = world.player.get_physics_control()
         # torque_curve = physics.torque_curve
-        # max_rpm = str(physics.max_rpm)[0:4]
+        max_rpm = str(physics.max_rpm)[0:4]
         # moi = str(physics.moi)[0:4]
         # drft = str(physics.damping_rate_full_throttle)[0:4]
         # drztce = str(str(physics.damping_rate_zero_throttle_clutch_engaged))[0:4]
@@ -217,8 +222,8 @@ class HUD(object):
         heading += 'W' if -0.5 > t.rotation.yaw > -179.5 else ''
         vehicles = world.world.get_actors().filter('vehicle.*')
 
-        elapsed_time = str(datetime.timedelta(seconds=int(self.simulation_time)))[2:]
-
+        # elapsed_time = str(datetime.timedelta(seconds=int(self.simulation_time)))[2:]
+        controller = ControlSW.controller
         vehicle_counter = 0
         if len(vehicles) > 1:
             distance = lambda l: math.sqrt((l.x - t.location.x)**2 + (l.y - t.location.y)**2 + (l.z - t.location.z)**2)
@@ -227,14 +232,13 @@ class HUD(object):
                 if d > 100.0:
                     break
                 vehicle_counter += 1
-
-        text = '' if 'help' in self._notifications.text else self._notifications.text
-
+        # @todo Remove Audi at the beginnning
+        text = '' if 'Au' in self._notifications.text else self._notifications.text
         self._info_text = [
-            'Time: % 9s' % elapsed_time,
             'Speed:   % 1.0f /% 1.0f ' % (speed, sl),
             ('Steer:', c.steer, -1.0, 1.0)]
-        self.log_data =\
+        self.log_data = \
+            '{:.3f},'.format(self.simulation_time) + \
             '{:.2f},'.format(speed) + \
             '{:.2f}{},'.format(t.rotation.yaw, heading) + \
             '{:.2f} {:.2f},'.format(t.location.x, t.location.y) + \
@@ -245,9 +249,9 @@ class HUD(object):
             '{},'.format(vehicle_counter) + \
             '{:.2f},'.format(delta_sl) + \
             '{},'.format(encounter_red_light) + \
-            '{}'.format(stopped_at_red_light) + \
-            ',' + text  # @TODO Verify that notifications has not a ','
-            # ',' + max_rpm + \
+            '{},'.format(stopped_at_red_light) + \
+            '{},'.format(max_rpm) + \
+            text + ','
             # ',' + moi + \
             # ',' + drft + \
             # ',' + drztcd + \
@@ -256,10 +260,16 @@ class HUD(object):
             # ',' + mass + \
             # ',' + drag_coefficient + \
             # ',' + center_of_mass + \
-            # ',' + text  # @TODO Verify that notifications has not a ','
+        if self.attack:
+            self.log_data += '{},'.format(controller.attack_activate) + \
+                             '{}/{}/{},'.format(''.join(controller.steer_attack), ''.join(controller.throttle_attack), ''.join(controller.brake_attack)) + \
+                             '{},'.format(controller.delta) + \
+                             '{},'.format(controller.attack_repetitions) + \
+                             '{}/{}/{},'.format(controller.k_values[0], controller.k_values[1], controller.k_values[2]) + \
+                             '{}'.format(controller.attack_ended)
+        return
 
     def write_driving_data(self, keep_writing=False):
-        # global log
         counter = 0
         while True:
             if counter > 0:

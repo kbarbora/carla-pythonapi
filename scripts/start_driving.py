@@ -29,39 +29,38 @@ try:
 except IndexError:
     pass
 import steering_wheel_control as ControlSW
-import manual_control_attackwheel as ControlWheelAttack
 import spawn_npc as SpawnNPC
 import task_guide
 import carla
 import gps_map
+import entername
 
 vehicles_list = []
 walkers_list = []
 all_id = []
 
+
 # @TODO: replace parser for general purpose parser
 def main(parse=True, pre_parsed=False):
-
+    driver = entername.main()
     if parse:
-        args = parser()
+        args = parser(driver)
     else:
         if not pre_parsed:
             raise Exception("Pre-parsed not completed")
         args = pre_parsed
-
-    # vehicles_list = []
-    # walkers_list = []
-    # all_id = []
     try:
-        _thread.start_new_thread(SpawnNPC.main, (args, vehicles_list, walkers_list, all_id))
-        _thread.start_new_thread(task_guide.main, ())
+        if args.walkers > 0 or args.number_of_vehicles > 0:
+            _thread.start_new_thread(SpawnNPC.main, (args, vehicles_list, walkers_list, all_id))
+        # _thread.start_new_thread(task_guide.main, ())
         clock = pygame.time.Clock()
-        exit_all = False
+
         map_pid = os.fork()
         if map_pid == 0:
             null = open(os.devnull, 'w')    # open /dev/null
             sys.stdout = null               # ignore stdout
             gps_map.game_loop(args, 1)
+
         if args.cyberattack:
             print("Attack mode!")
             values = processes_attack_input(args.cyberattack)
@@ -96,7 +95,7 @@ def destroy_NPC(args):
     return
 
 
-def parser():
+def parser(driver):
     argparser = argparse.ArgumentParser(
         description='CARLA Manual Control Client')
     argparser.add_argument(
@@ -137,7 +136,7 @@ def parser():
     argparser.add_argument(
         '-u', '--username',
         metavar='U',
-        default=00,
+        default=driver,
         type=int,
         help="username-driver identification number (00).")
     argparser.add_argument(
@@ -177,7 +176,7 @@ def parser():
         metavar='PATH_TO_ATTACK_FILE',
         # default='cyberattack.txt',
         help="Enable the cyberattacks simulation. Follow by the filepath to the cyber attack values textfile."
-             "(default: './cyberattack_values.txt')")
+             "(default: './cyberattack.txt')")
     argparser.add_argument(
         '-t', '--tasklevel',
         metavar='NUMBER_OF_TASK',
