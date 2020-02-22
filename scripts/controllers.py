@@ -5,6 +5,8 @@ from carla_exception import *
 import _thread
 import sys
 import steering_wheel_control as ControlSW
+import risk_decisions
+
 if sys.version_info >= (3, 0):
     from configparser import ConfigParser
 else:
@@ -47,6 +49,16 @@ try:
 except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
 
+
+    # Format for attacks  : ['steer', 'gas', 'brake','restablished', 'iterations', 'interval']
+STEER = 0
+GAS = 1
+BRAKE = 2
+RESTABLISHED = 3
+ITER = 4
+INTERVAL = 5
+SLEEP = .1
+
 # ==============================================================================
 # -- DualControl -----------------------------------------------------------
 # ==============================================================================
@@ -54,12 +66,13 @@ except ImportError:
 
 class DualControl(object):
 
-    def __init__(self, world, attack, task_level):
+    def __init__(self, world, args):
         self._autopilot_enabled = False
         if isinstance(world.player, carla.Vehicle):
             self._control = carla.VehicleControl()
             world.player.set_autopilot(self._autopilot_enabled)
-            self._level = task_level
+            self.args = args
+            self._level = args.tasklevel
             self._final_loc = carla.Location(x=187, y=55)
         elif isinstance(world.player, carla.Walker):
             self._control = carla.WalkerControl()
@@ -67,13 +80,17 @@ class DualControl(object):
         else:
             raise NotImplementedError("Actor type not supported")
         self._steer_cache = 0.0
-        if attack:
-            self.steer_attack = attack['values'][1]
-            self.throttle_attack = attack['values'][2]
-            self.brake_attack = attack['values'][3]
-            self.attack_repetitions = int(attack['repetitions'])
-            self.attack_restablished = int(attack['restablished'])
-            self._attack_interval = int(attack['interval'])
+        if self.args.cyberattack:
+            self.throttle = self.brake = self.steer = '0'
+            self.iterations = self.restablished = self.interval = 0
+    # Format for attacks  : ['steer', 'gas', 'brake','restablished', 'iterations', 'interval']
+            self.attacks = {'bike'     : ['000', '000', '-50', '10', '0', '00'],
+                            'cola'     : ['-20', '000', '000', '15', '1', '05'],
+                            'tunnel'   : ['000', '-10', '000', '20', '1', '02'],
+                            'sculpture': ['-50', '000', '000', '10', '0', '00'],
+                            'inters'   : ['+30', '000', '000', '15', '0', '00'],
+                            'combo'    : ['+30', '+50', '+50', '10', '0', '10'],
+                            }
             self.attack_activate = False
         self.attack_ended = True
         self.k_values = [1.0, 1.0, 1.0]
@@ -109,23 +126,6 @@ class DualControl(object):
         self._handbrake_idx = int(
             self._parser.get('G29 Racing Wheel', 'handbrake'))
 
-    def write_driving_data(self, args, keep_writing=False):
-        counter = 0
-        self.logfd = ControlSW.create_logfile(args, True)
-        while True:
-            if counter > 0:
-                try:
-                    self.logfd.write('{},{}\n'.format(counter, self.log))
-                except Exception:
-                    self.logfd.write('{},{}\n'.format(counter, self.log))
-                    self.logfd.close()
-            # log.write(str(counter) +',' +self.log_data + '\n')
-            time.sleep(DATA_INTERVAL)  # log data interval
-            counter += 1
-            if not keep_writing:
-                break
-        return
-
     def parse_events(self, world, clock):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -136,22 +136,16 @@ class DualControl(object):
                     self._horn_sound.play()
                 if event.button == 7:
                     raise RestartTask
-                if event.button == 6:
-                    current_loc = world.player.get_transform().location
-                    print(current_loc)
-                    if current_loc.x < 190 and (self._final_loc.y-15) < current_loc.y < self._final_loc.y:
-                        if self._level == 0:
-                            print("Next task")
-                            raise NextTask
-                        else:
-                            print("Last task")
-                            raise LastTask
-                elif event.button == 1:
-                    world.hud.toggle_info()
-                elif event.button == 2:
-                    world.camera_manager.toggle_camera()
-                elif event.button == 3:
-                    world.next_weather()
+                # if event.button == 6:
+                    # current_loc = world.player.get_transform().location
+                    # print(current_loc)
+                    # if current_loc.x < 190 and (self._final_loc.y-15) < current_loc.y < self._final_loc.y:
+                    #     if self._level == 1:
+                    #         print("Next task")
+                    #         raise NextTask
+                    #     else:
+                    #         print("Last task")
+                    #         raise LastTask
                 elif event.button == self._reverse_idx:
                     self._control.gear = 1 if self._control.reverse else -1
                 elif event.button == 23:
@@ -160,7 +154,6 @@ class DualControl(object):
                     world.hud.help.toggle()
 
         if isinstance(self._control, carla.VehicleControl):
-            # self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time())
             if not self.attack_ended:
                 self._parse_vehicle_wheel_attack()
             self._parse_vehicle_wheel()
@@ -222,45 +215,70 @@ class DualControl(object):
         if self.attack_activate:
             modified_values = False
             print("executing Cyberattack!!!")
-            if self.steer_attack != '0':  # attacking steering
-                self.delta = self.k_values[0] * int(self.steer_attack[1]) / 100  # calculate change for gas pedal
-                exec("self.delta = self.delta * " + self.steer_attack[0] + "1")       # embed sign in self.delta var
+            if self.steer != '000':  # attacking steering
+                self.delta = self.k_values[0] * int(self.steer[1:]) / 100  # calculate change for gas pedal
+                exec("self.delta = self.delta * " + self.steer[0] + "1")       # embed sign in self.delta var
                 exec("self.k_values[0] = self.k_values[0] + self.delta")
                 modified_values = True
-            if self.throttle_attack != '0':  # attacking throttle
-                self.delta = self.k_values[1] * int(self.throttle_attack[1]) / 100  # calculate change for throttle pedal
-                exec("self.k_values[1] = self.k_values[1] " + self.throttle_attack[0] + " self.delta")
+            if self.throttle != '000':  # attacking throttle
+                self.delta = self.k_values[1] * int(self.throttle[1:]) / 100  # calculate change for throttle pedal
+                exec("self.k_values[1] = self.k_values[1] " + self.throttle[0] + " self.delta")
                 modified_values = True
-            if self.brake_attack != '0':  # attacking steering, throttle
-                print(str(self.k_values[2]) + ' brake' + self.brake_attack)
-                self.delta = self.k_values[2] * int(self.brake_attack[1]) / 100  # calculate change for brake pedal
-                exec("self.k_values[2] = self.k_values[2] " + self.brake_attack[0] + " self.delta")
+            if self.brake != '000':  # attacking steering, throttle
+                self.delta = self.k_values[2] * int(self.brake[1:]) / 100  # calculate change for brake pedal
+                exec("self.k_values[2] = self.k_values[2] " + self.brake[0] + " self.delta")
                 modified_values = True
             if not modified_values:
                 raise (Exception("[Error] Attack value not identified "))
-            self.attack_repetitions -= 1
+            self.iterations -= 1
             self.attack_activate = False
         return
 
-    def attack_counter(self):
-        self.attack_ended = False
-        time.sleep(5)
-        print("Starting counter")  # debug
+    def attack_trigger(self):
         while True:
-            print(self.attack_repetitions)
-            if self.attack_repetitions < 0:
-                if not self.attack_restablished:
+            time.sleep(SLEEP)
+            if risk_decisions.attack in self.attacks.keys():
+                self.attack_ended = False
+                current_attack = self.attacks[risk_decisions.attack]
+    # Format for attacks  : ['steer', 'gas', 'brake','restablished', 'iterations', 'interval']
+                self.steer = current_attack[STEER]
+                self.throttle = current_attack[GAS]
+                self.brake = current_attack[BRAKE]
+                self.restablished = int(current_attack[RESTABLISHED])
+                self.iterations = int(current_attack[ITER])
+                self.interval = int(current_attack[INTERVAL])
+                if self.attack_counter():
+                    self.reset_attack()
+                else:
+                    raise(Exception("[Error] Attack Reset"))
+
+    def reset_attack(self):
+        risk_decisions.attack = "attack"
+        self.throttle = self.brake = self.steer = '0'
+        self.iterations = self.restablished = self.interval = 0
+        return
+
+    # will execute once for each attack
+    def attack_counter(self):
+        # time.sleep(5)
+        print("Starting attack " + risk_decisions.attack)  # debug
+        while True:
+            # print(self.iterations)
+            if self.iterations < 0:
+                self.attack_ended = True
+                if not self.restablished:
                     print("Skipping restablished")
                 else:
-                    time.sleep(self.attack_restablished)
+                    time.sleep(self.restablished)
                     print("Restablishing k values")
                     self.k_values = [1.0, 1.0, 1.0]
-                self.attack_ended = True
+                    return True
                 print("Attack finished")
-                return
+                return False
             else:
-                time.sleep(self._attack_interval)
+                time.sleep(self.interval)
                 self.attack_activate = True
+                time.sleep(SLEEP)
 
     @staticmethod
     def _is_quit_shortcut(KEY):

@@ -18,11 +18,14 @@ It uses the 'manual_control_steeringwheel' script modified.
 import argparse
 import logging
 import os
+import socket
 import stat
 import datetime
 import _thread
 import sys
 import time
+
+import psutil
 import pygame
 try:
     sys.path.append('../examples')
@@ -33,52 +36,46 @@ import spawn_npc as SpawnNPC
 import task_guide
 import carla
 import gps_map
-import entername
+from entername import get_name
 
 vehicles_list = []
 walkers_list = []
 all_id = []
 
 
-# @TODO: replace parser for general purpose parser
-def main(parse=True, pre_parsed=False):
-    driver = entername.main()
+def main(parse=True, pre_parsed=False, driver_name=False):
+
+    check_server()
+    if not driver_name:
+        driver = get_name()
+    else:
+        driver = driver_name
     if parse:
         args = parser(driver)
     else:
         if not pre_parsed:
             raise Exception("Pre-parsed not completed")
         args = pre_parsed
+    print(args)  # debug
     try:
         if args.walkers > 0 or args.number_of_vehicles > 0:
             _thread.start_new_thread(SpawnNPC.main, (args, vehicles_list, walkers_list, all_id))
-        # _thread.start_new_thread(task_guide.main, ())
+        # _thread.start_new_thread(task_guide.main, (args,))
         clock = pygame.time.Clock()
 
         map_pid = os.fork()
         if map_pid == 0:
+            print("Map pid is " + str(os.getpid()))  # debug
             null = open(os.devnull, 'w')    # open /dev/null
             sys.stdout = null               # ignore stdout
             gps_map.game_loop(args, 1)
-
-        if args.cyberattack:
-            print("Attack mode!")
-            values = processes_attack_input(args.cyberattack)
-            ControlSW.start(args, clock, values)
-        else:
-            ControlSW.start(args, clock, None)
+            sys.exit()
+        if map_pid > 0:
+            if args.cyberattack:
+                print("Attack mode!")   # debug
+            ControlSW.start(args, clock)
     finally:
         destroy_NPC(args)
-        # client = carla.Client(args.host, args.port)
-        # print('destroying %d vehicles' % len(vehicles_list))
-        # client.apply_batch([carla.command.DestroyActor(x) for x in vehicles_list])
-        #
-        # # stop walker controllers (list is [controler, actor, controller, actor ...])
-        # for i in range(0, len(all_id), 2):
-        #     client.get_world().get_actors(all_id)[i].stop()
-        #
-        # print('destroying %d walkers' % len(walkers_list))
-        # client.apply_batch([carla.command.DestroyActor(x) for x in all_id])
 
 
 def destroy_NPC(args):
@@ -93,6 +90,17 @@ def destroy_NPC(args):
     print('destroying %d walkers' % len(walkers_list))
     client.apply_batch([carla.command.DestroyActor(x) for x in all_id])
     return
+
+
+def check_server():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(('127.0.0.1', 2000))
+        s.close()
+        return True
+    except socket.error:
+        print("[Error] Make sure server is running. Exiting.\n")
+        sys.exit(1)
 
 
 def parser(driver):
@@ -173,31 +181,27 @@ def parser(driver):
         help="pedestrians filter (default: 'walker.pedestrian.*')")
     argparser.add_argument(
         '-c', '--cyberattack',
-        metavar='PATH_TO_ATTACK_FILE',
-        # default='cyberattack.txt',
-        help="Enable the cyberattacks simulation. Follow by the filepath to the cyber attack values textfile."
-             "(default: './cyberattack.txt')")
+        action='store_true',
+        help="Enable the cyberattacks simulation. Follow by the filepath to the cyber attack values textfile.")
     argparser.add_argument(
         '-t', '--tasklevel',
         metavar='NUMBER_OF_TASK',
-        default=0,
+        default=1,
         type=int,
-        help="Start at the desired task. (default 0).")
+        help="Start at the desired task. (default 1).")
+    argparser.add_argument(
+        '--tick-time',
+        metavar='T',
+        default=0.2,
+        type=float,
+        help='Tick time between updates (forward velocity) (default: 0.2)')
+    argparser.add_argument(
+        '--seed',
+        metavar='S',
+        default=os.getpid(),
+        type=int,
+        help='Seed for the random path (default: program pid)')
     return argparser.parse_args()
-
-
-def processes_attack_input(file='cyberattack.txt'):
-    attack = open(file, 'r').readlines()
-    if len(attack) != 7:
-        raise Exception("Cyberattack input file malformed.")
-    processed = [1]
-    for a in attack:
-        a = a.strip()
-        processed.append(a[a.index('=') + 1:])
-        if processed[-1] != '0' and ('+' in processed[-1] or '-' in processed[-1]):
-            processed[-1] = [processed[-1][0], processed[-1][1:]]
-    print(processed)
-    return processed
 
 
 if __name__ == '__main__':

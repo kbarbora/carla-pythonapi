@@ -35,10 +35,14 @@ Welcome to CARLA No-Rendering Mode Visualizer
 # ==============================================================================
 
 import glob
+import _thread
 import os
 import sys
 import time
 import thread
+import task_guide
+import carla
+green = carla.Color(100, 255, 0)
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -138,6 +142,7 @@ COLOR_ALUMINIUM_5 = pygame.Color(46, 52, 54)
 
 COLOR_WHITE = pygame.Color(255, 255, 255)
 COLOR_BLACK = pygame.Color(0, 0, 0)
+COLOR_GREEN = pygame.Color(100, 255, 0)
 
 # Module Defines
 TITLE_WORLD = 'WORLD'
@@ -448,7 +453,7 @@ class MapImage(object):
                 os.makedirs(dirname)
 
             # Remove files if selected town had a previous version saved
-            list_filenames = glob.glob(os.path.join(dirname,carla_map.name) + "*")
+            list_filenames = glob.glob(os.path.join(dirname, carla_map.name) + "*")
             for town_filename in list_filenames:
                 os.remove(town_filename)
 
@@ -1125,6 +1130,15 @@ class World(object):
             corners = [world_to_pixel(p) for p in corners]
             pygame.draw.lines(surface, color, False, corners, int(math.ceil(4.0 * self.map_image.scale)))
 
+    def render_path(self, surface, waypoints):
+        INITIAL = carla.Location(70, 8, 0)
+        current = self.town_map.get_waypoint(INITIAL)
+        next_wp = list(current.next(4))[0]
+        # wp = [[current.transform.location.x, current.transform.location.y], [next_wp.transform.location.x + 20, next_wp.transform.location.y]]
+        # print(wp)
+        pygame.draw.lines(surface, COLOR_GREEN, False, wp, int(math.ceil(4.0 * self.map_image.scale )))
+
+
     def render_actors(self, surface, vehicles, traffic_lights, speed_limits, walkers):
         # Static actors
         self._render_traffic_lights(surface, [tl[0] for tl in traffic_lights], self.map_image.world_to_pixel)
@@ -1133,6 +1147,7 @@ class World(object):
 
         # Dynamic actors
         self._render_vehicles(surface, vehicles, self.map_image.world_to_pixel)
+        # self.render_path(surface, False)
         self._render_walkers(surface, walkers, self.map_image.world_to_pixel)
 
     def clip_surfaces(self, clipping_rect):
@@ -1398,6 +1413,7 @@ def game_loop(args, display=0):
         input_control = InputControl(TITLE_INPUT)
         hud = HUD(TITLE_HUD, width, height)
         world = World(TITLE_WORLD, args, timeout=2.0)
+        # _thread.start_new_thread(task_guide.main, ())
         # main_surface = world.result_surface
 
         # Start
@@ -1424,6 +1440,7 @@ def game_loop(args, display=0):
             try:
                 os.kill(parent, 0)
             except OSError:
+                os._exit(0)
                 sys.exit()
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')

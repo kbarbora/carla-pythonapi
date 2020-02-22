@@ -50,7 +50,8 @@ def spawn_vehicle(filter=None, spawn_point=None):
         blueprint = world.get_blueprint_library().filter("vehicle." + filter)
         blueprint = blueprint[0]
     transform = world.get_map().get_spawn_points()[0] if not spawn_point else spawn_point
-    vehicle = world.spawn_actor(blueprint, transform)
+    vehicle = world.try_spawn_actor(blueprint, transform)
+    # vehicle = world.spawn_actor(blueprint, transform)
     return vehicle
 
 

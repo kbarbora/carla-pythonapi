@@ -28,6 +28,7 @@ import vehicle
 DRIVER_VEHICLE = "tt"
 DETECT_DISTANCE = 100
 WAYPOINT_SEPARATION = 4
+attack = 0
 
 
 class risk:
@@ -80,7 +81,7 @@ class risk:
         time.sleep(.1)
         if new_vehicle:
             self.vehicle_list.append(new_vehicle)
-        return new_vehicle.type_id
+        return
 
     # def add_xvehicles(self, x=2, offset=0, rotation=0):
     #     counter = 0
@@ -156,18 +157,22 @@ def distance_from_driver(driver, risk):
 def get_driver():
     global world_g
     actors = world_g.get_actors()
-    print(DRIVER_VEHICLE)
+    # print(DRIVER_VEHICLE)
+    print("trying to get driver")
     for actor in actors:
         if actor.type_id.endswith(DRIVER_VEHICLE):
+            print("driver FOUND")
             return actor
 
 
-def init():
-    global world_g, driver_g
+def init(cyberattack=False):
+    global world_g, driver_g, attack
     print("***starting risks")
+    attack = "attack" if cyberattack else 0  # global variable indicating the current attack
     client = carla.Client('127.0.0.1', 2000)
     world_g = client.get_world()
     sp = carla.Map.get_spawn_points(world_g.get_map())
+    time.sleep(3)
     bike_crossing = risk(world_g, spawn_point=sp[2])
     carla_cola = risk(world_g, spawn_point=sp[21])
     tunnel = risk(world_g, spawn_point=sp[3:5])
@@ -177,6 +182,7 @@ def init():
     sculpture = risk(world_g, spawn_point=[sp[1], sp[0], sp[24]])
     traffic_jam = risk(world_g, spawn_point=[sp[10], sp[8], sp[6], sp[10], sp[7], sp[15], sp[13], sp[19]])
     risks = [bike_crossing, carla_cola, tunnel, park, stop_traffic, sculpture, traffic_jam]
+    time.sleep(10)
     driver_g = get_driver()
     risk_bike_crossing(risks[0])
     # time.sleep(5)
@@ -186,6 +192,7 @@ def init():
     risk_no_stop_cars(risks[4])
     risk_front_sculpture(risks[5])
     risk_traffic_jam(risks[6])
+    attack = activate_attack(risk(world_g, spawn_point=sp[19]), 'combo', -50)
 
     started = True
     # for r in risks:
@@ -202,7 +209,7 @@ def init():
         #     time.sleep(.1)
         # while started:
         #     dist = distance_from_driver(driver_g, r)
-        #     print(dist)
+        #     # print(dist)
         #     time.sleep(.1)
         #     if int(dist) < 55:
         #         print('YESSS')
@@ -229,7 +236,7 @@ def risk_traffic_jam(r, threshold=60):
         time.sleep(.1)
     while True:
         dist = distance_from_driver(driver_g, r)
-        print(dist)
+        # print(dist)
         time.sleep(.1)
         if int(dist) < 55:
             print('YESSS')
@@ -238,7 +245,10 @@ def risk_traffic_jam(r, threshold=60):
             while True:
                 dist = distance_from_driver(driver_g, r)
                 for s in range(len(r.spawn_point)):
+                    # try:
                     r.add_vehicle(spawn_point=s)
+                    # except RuntimeError:
+                        # return True
                     time.sleep(2.5)
                     r.start_vehicle()
                 if int(dist) > 50:
@@ -246,15 +256,18 @@ def risk_traffic_jam(r, threshold=60):
 
 
 def risk_front_sculpture(r, threshold=45):
+    global attack
     # sp 1, 0, 24
     # sps = [sp[1], sp[20], sp[0]]
     for s in range(3):
         print('car added')
         r.add_vehicle(spawn_point=s)
         time.sleep(.1)
+    if attack:
+        attack = activate_attack(r, "sculpture", 50)
     while True:
         dist = distance_from_driver(driver_g, r)
-        print(dist)
+        # print(dist)
         time.sleep(.1)
         if int(dist) < threshold:
             print('-----------Front Sculpture activated')
@@ -262,23 +275,30 @@ def risk_front_sculpture(r, threshold=45):
             time.sleep(2)
             while True:
                 time.sleep(4)
+                # try:
                 dist = distance_from_driver(driver_g, r)
                 r.add_vehicle(spawn_point=-1)
                 r.start_vehicle()
                 if int(dist) > threshold+10:
                     return True
+                # except RuntimeError:
+                #     return True
 
 
 def risk_no_stop_cars(r, threshold=40):
+    global attack
     # sp 22, 5, 9, 12, 16, 23, 20
     # r.spawn_point = [r.spawn_point[12], r.spawn_point[9], r.spawn_point[5], r.spawn_point[16], r.spawn_point[20], r.spawn_point[23], r.spawn_point[22]]
     # mid = [sp[12], sp[14], sp[5], sp[9], sp[19], sp[18], sp[16]]
     for s in range(len(r.spawn_point)):
         r.add_vehicle(spawn_point=s)
         time.sleep(.1)
+    if attack:
+        attack = activate_attack(r, 'inters', 45)
+
     while True:
         dist = distance_from_driver(driver_g, r)
-        print(dist)
+        # print(dist)
         time.sleep(.1)
         if int(dist) < threshold:
             print("----------Non stop cars activated")
@@ -295,7 +315,7 @@ def risk_ped_park(r, threshold=50):
     r.add_pedestrian(control=control)
     while True:
         dist = distance_from_driver(driver_g, r)
-        print(dist)
+        # print(dist)
         time.sleep(.1)
         if int(dist) < threshold:
             print("----------Pedestrian in park activated")
@@ -307,13 +327,16 @@ def risk_ped_park(r, threshold=50):
 
 
 def risk_tunnel(r, threshold=60):
+    global attack
     # sp 3, 4
     r.add_vehicle(filter='toyota*')
     r.add_vehicle(spawn_point=1, filter='volk*')
+    if attack:
+        attack = activate_attack(r, "tunnel", 80)
     while True:
         time.sleep(.1)
         dist = distance_from_driver(driver_g, r)
-        print(dist)
+        # print(dist)
         if int(dist) < threshold:
             print('-------------Tunnel risk activated')
             r.start_vehicle()
@@ -321,12 +344,15 @@ def risk_tunnel(r, threshold=60):
 
 
 def risk_carlacola(r, threshold=80):
+    global attack
     # sp 21
-    print(r.add_vehicle(filter='jeep*'))
+    r.add_vehicle(filter='jeep*')
+    if attack:
+        attack = activate_attack(r, 'cola', 100, True)
     while True:
         time.sleep(.1)
-        dist = distance_from_driver(driver_g, r)
-        print(dist)
+        # dist = distance_from_driver(driver_g, r)
+        # print(dist)
         if int(driver_g.get_location().y) < threshold:
             print('--------------CarlaCola risk activated')
             r.start_vehicle()
@@ -334,15 +360,31 @@ def risk_carlacola(r, threshold=80):
 
 
 def risk_bike_crossing(r, threshold=55):
+    global attack
     # sp 2
     r.add_vehicle(filter='bh*')
+    print("-----------------------value of attack is" + attack)
+    if attack:
+        attack = activate_attack(r, "bike", 150)
     while True:
         time.sleep(.1)
         dist = distance_from_driver(driver_g, r)
-        print(dist)
+        # print(dist)
         if int(dist) <= threshold:
             r.start_vehicle()
             return True
+
+
+def activate_attack(risk_location, attack_string, threshold, special=False):
+    while True:
+        time.sleep(.1)
+        dist = distance_from_driver(driver_g, risk_location)
+        if special:
+            dist = driver_g.get_location().y
+        if int(dist) <= threshold:
+            print("Performing attack")
+            return attack_string
+
 
 
 # def main():

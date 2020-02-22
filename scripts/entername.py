@@ -67,7 +67,7 @@ class EntryWindow(Gtk.Window):
             icon_name)
 
 
-def main():
+def get_name():
     win = EntryWindow()
     try:
         win.show_all()
@@ -80,4 +80,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    get_name()

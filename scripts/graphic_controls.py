@@ -147,7 +147,6 @@ class HUD(object):
         fonts = [x for x in pygame.font.get_fonts() if 'mono' in x]
         default_font = 'ubuntumono'
         mono = pygame.font.match_font(default_font)
-        self.args = args
         self._font_mono = pygame.font.Font(mono, 26)
         self._notifications = FadingText(font, (self.dim[0], 40), (0, self.dim[1] - 40))
         self.help = HelpText(pygame.font.Font(mono, 20), self.dim[0]+300, self.dim[1], doc)
@@ -261,12 +260,12 @@ class HUD(object):
             # ',' + drag_coefficient + \
             # ',' + center_of_mass + \
         if self.attack:
-            self.log_data += '{},'.format(controller.attack_activate) + \
-                             '{}/{}/{},'.format(''.join(controller.steer_attack), ''.join(controller.throttle_attack), ''.join(controller.brake_attack)) + \
+            self.log_data += '{}/{}/{},'.format(int(controller.steer), int(controller.throttle), int(controller.brake)) + \
                              '{},'.format(controller.delta) + \
-                             '{},'.format(controller.attack_repetitions) + \
+                             '{},'.format(controller.iterations+1) + \
                              '{}/{}/{},'.format(controller.k_values[0], controller.k_values[1], controller.k_values[2]) + \
-                             '{}'.format(controller.attack_ended)
+                             '{},'.format(controller.attack_ended) + \
+                             '{}'.format(controller.restablished)
         return
 
     def write_driving_data(self, keep_writing=False):
@@ -279,7 +278,7 @@ class HUD(object):
                     self.log.write('{},{}\n'.format(counter, self.log_data))
                     self.log.close()
             # log.write(str(counter) +',' +self.log_data + '\n')
-            time.sleep(DATA_INTERVAL)  # log data interval
+            time.sleep(.05)  # log data interval
             counter += 1
             if not keep_writing:
                 break

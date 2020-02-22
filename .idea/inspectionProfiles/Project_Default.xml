@@ -21,6 +21,7 @@
         <list>
           <option value="E702" />
           <option value="E116" />
+          <option value="E203" />
         </list>
       </option>
     </inspection_tool>
@@ -39,6 +40,7 @@
           <option value="examples.manual_control_steeringwheel.NextTask" />
           <option value="scripts.controllers.RestartTask" />
           <option value="scripts.controllers.NextTask" />
+          <option value="scripts.controllers.LastTask" />
         </list>
       </option>
     </inspection_tool>

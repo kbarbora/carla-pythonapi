@@ -52,7 +52,8 @@ from __future__ import print_function
 # ==============================================================================
 import _thread
 import datetime
-
+import signal
+import task_guide
 import thread
 import glob
 import os
@@ -233,15 +234,8 @@ def find_weather_presets():
 
 
 def game_loop(args, clock):
-    global hud, k_values, attack, controller
-    k_values = [1.0, 1.6, 1.6]
+    global hud, controller
     # attack_performed = 0
-    if attack:
-        attack['interval'] = attack['values'][4]
-        attack['inital'] = attack['values'][5]
-        attack['restablished'] = attack['values'][6]
-        attack['repetitions'] = attack['values'][7]
-
     pygame.init()
     pygame.font.init()
     world = None
@@ -257,14 +251,11 @@ def game_loop(args, clock):
 
         hud = HUD(args, log, __doc__)
         world = World(client.get_world(), hud, args.filter)
-        if attack:
-            controller = DualControl(world, attack, args.tasklevel)
-            thread.start_new_thread(controller.attack_counter, ())
-        else:
-            controller = DualControl(world, None, args.tasklevel)
+        controller = DualControl(world, args)
+        if args.cyberattack:
+            thread.start_new_thread(controller.attack_trigger, ())
         time.sleep(1.5)
         thread.start_new_thread(hud.write_driving_data, (True,))
-        # thread.start_new_thread(gps_map.game_loop, (args, display))
         while True:
             clock.tick_busy_loop(40)    # max fps in client
             if controller.parse_events(world, clock):
@@ -286,46 +277,63 @@ def game_loop(args, clock):
 # ==============================================================================
 
 
-def start(args, clock, attack_values):
-    global attack, data_interval, freq_data
+def start(args, clock):
+    global data_interval
 
     data_interval = args.data_interval
-    freq_data = 1 / data_interval
-    if attack_values:
-        attack = {'values': attack_values}
-    else:
-        attack = None
     args.width, args.height = [int(x) for x in args.res.split('x')]
 
-    # log_level = logging.DEBUG if args.debug else logging.INFO
-    # logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)
-
-    # logging.info('listening to server %s:%s', args.host, args.port)
     if args.debug:
         print(__doc__)
     try:
+        # if args.tasklevel == 2:
+        #     # args.walkers = 20   # for testing purposes
+        #     #     # args.number_of_vehicles = 50
+        #     start_driving.main(False, args, args.username)
+        # elif args.tasklevel == 3:
+        #     # args.walkers = 0  # for testing purposes
+        #     # args.number_of_vehicles = 0
+        #     args.cyberattack = True
+        #     start_driving.main(False, args, args.username)
+        #     time.sleep(3)
+        #     _thread.start_new_thread(risk_decisions.init, (args.cyberattack,))
+        # elif args.tasklevel == 1:
+        _thread.start_new_thread(task_guide.main, (args,))
+        if args.cyberattack:
+            _thread.start_new_thread(risk_decisions.init, (args.cyberattack,))
         game_loop(args, clock)
+        # else:
+        #     raise(Exception("[Error] Task level does not exists"))
     except RestartTask:
         print('________________________________________________________'
               '________________________________________________________')
         print("Restarting task")
+        # if child != 0:
+        #     os.kill(int(child), signal.SIGKILL)
         game_loop(args, clock)
-    except NextTask:
-        print('________________________________________________________'
-              '________________________________________________________')
-        args.walkers = 20   # for testing purposes
-        args.number_of_vehicles = 50
-        args.tasklevel = 1
-        start_driving.main(False, args)
-    except LastTask:
-        print('________________________________________________________'
-              '________________________________________________________')
-        start_driving.destroy_NPC(args)
-        args.walkers = 0  # for testing purposes
-        args.number_of_vehicles = 0
-        args.tasklevel = 2
-        _thread.start_new_thread(risk_decisions.init, ())
-        start_driving.main(False, args)
+    # except NextTask:
+    #     print('________________________________________________________'
+    #           '________________________________________________________')
+    #     # args.walkers = 20   # for testing purposes
+    #     # args.number_of_vehicles = 50
+    #     args.tasklevel = 2
+    #     print("Map PID     " + str(start_driving.child))
+    #     # if child != 0:
+    #     #     os.kill(int(child), signal.SIGKILL)
+    #     start_driving.main(False, args, args.username)
+    # except LastTask:
+    #     print('________________________________________________________'
+    #           '________________________________________________________')
+    #     # if child != 0:
+    #     #     os.kill(int(child), signal.SIGKILL)
+    #     start_driving.destroy_NPC(args)
+    #     args.walkers = 0  # for testing purposes
+    #     args.number_of_vehicles = 0
+    #     args.tasklevel = 3
+    #     args.cyberattack = True
+    #     start_driving.main(False, args, args.username)
+    #     time.sleep(3)
+    #     _thread.start_new_thread(risk_decisions.init, (args.cyberattack,))
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
 
@@ -343,19 +351,18 @@ def create_logfile(args):
     log = open(args.log_filepath + logname, 'w')
     log.write('50ms,Time,Speed,Heading,Location,Throttle,Steer,Brake,Reverse,' +
                   'Near Vehicles,Over Speed,Sign,Stopped,maxRPM,Notifications')
-    if attack:
-        log.write(',Attack,Actuator,Delta,Repetitions,Kvalues,Ended\n')
+    if args.cyberattack:
+        log.write(',Actuator,Delta,Repetitions,Kvalues,Ended,Restablished\n')
     else:
         log.write('\n')
     return log
 
 
 def _format_logname(args):
-    global attack
     time_now = str(datetime.datetime.now()).replace(' ', '-')
     time_now = time_now[:time_now.index('.')]       # delete anything beyond seconds
     time_now = time_now.replace(':', '')[5:]        # remove year from log
-    if attack:
+    if args.cyberattack:
         return str(args.username) + '_' + str(time_now) + "a.csv"
     else:
         return str(args.username) + '_' + str(time_now) + ".csv"

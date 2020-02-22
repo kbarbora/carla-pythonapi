@@ -42,7 +42,7 @@ green = carla.Color(100, 255, 0)
 blue = carla.Color(0, 0, 255)
 tick_time = .5
 waypoint_separation = 4
-lifetime = 60
+lifetime = -1
 
 
 def go_straight(debug, current, steps=1):
@@ -123,62 +123,62 @@ def draw_arrow(debug, current):
         thickness=0.1, color=green, life_time=lifetime, persistent_lines=False)
 
 
-def main():
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument(
-        '--host',
-        metavar='H',
-        default='127.0.0.1',
-        help='IP of the host server (default: 127.0.0.1)')
-    argparser.add_argument(
-        '-p', '--port',
-        metavar='P',
-        default=2000,
-        type=int,
-        help='TCP port to listen to (default: 2000)')
-    argparser.add_argument(
-        '-x',
-        default=70.0,
-        type=float,
-        help='X start position (default: 0.0)')
-    argparser.add_argument(
-        '-y',
-        default=8.0,
-        type=float,
-        help='Y start position (default: 0.0)')
-    argparser.add_argument(
-        '-z',
-        default=0.0,
-        type=float,
-        help='Z start position (default: 0.0)')
-    argparser.add_argument(
-        '-s', '--seed',
-        metavar='S',
-        default=os.getpid(),
-        type=int,
-        help='Seed for the random path (default: program pid)')
-    argparser.add_argument(
-        '-t', '--tick-time',
-        metavar='T',
-        default=0.2,
-        type=float,
-        help='Tick time between updates (forward velocity) (default: 0.2)')
-    args = argparser.parse_args()
+def main(args=None):
+    # argparser = argparse.ArgumentParser()
+    # argparser.add_argument(
+    #     '--host',
+    #     metavar='H',
+    #     default='127.0.0.1',
+    #     help='IP of the host server (default: 127.0.0.1)')
+    # argparser.add_argument(
+    #     '-p', '--port',
+    #     metavar='P',
+    #     default=2000,
+    #     type=int,
+    #     help='TCP port to listen to (default: 2000)')
+    # argparser.add_argument(
+    #     '-x',
+    #     default=70.0,
+    #     type=float,
+    #     help='X start position (default: 0.0)')
+    # argparser.add_argument(
+    #     '-y',
+    #     default=8.0,
+    #     type=float,
+    #     help='Y start position (default: 0.0)')
+    # argparser.add_argument(
+    #     '-z',
+    #     default=0.0,
+    #     type=float,
+    #     help='Z start position (default: 0.0)')
+    # argparser.add_argument(
+    #     '-s', '--seed',
+    #     metavar='S',
+    #     default=os.getpid(),
+    #     type=int,
+    #     help='Seed for the random path (default: program pid)')
+    # argparser.add_argument(
+    #     '-t', '--tick-time',
+    #     metavar='T',
+    #     default=0.2,
+    #     type=float,
+    #     help='Tick time between updates (forward velocity) (default: 0.2)')
+    # args = argparser.parse_args()
 
-    tick_time = args.tick_time
+    # tick_time = args.tick_time
     try:
-        client = carla.Client(args.host, args.port)
+        client = carla.Client('127.0.0.1', 2000)
         client.set_timeout(2.0)
 
         world = client.get_world()
         m = world.get_map()
         debug = world.debug
 
+        # random.seed(24371)
         random.seed(args.seed)
-        print("Seed: ", args.seed)
 
-        loc = carla.Location(args.x, args.y, args.z)
-        print("Initial location: ", loc)
+        loc = carla.Location(70.0, 8.0, 0)
+        print("Initial location: ", loc)    # debug
 
         current = m.get_waypoint(loc)
         # print(current)
