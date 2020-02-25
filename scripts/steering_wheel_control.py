@@ -301,6 +301,9 @@ def start(args, clock):
         _thread.start_new_thread(task_guide.main, (args,))
         if args.cyberattack:
             _thread.start_new_thread(risk_decisions.init, (args.cyberattack,))
+        elif args.risk:
+            _thread.start_new_thread(risk_decisions.init, (False,))
+
         game_loop(args, clock)
         # else:
         #     raise(Exception("[Error] Task level does not exists"))

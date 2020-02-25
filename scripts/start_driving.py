@@ -184,6 +184,10 @@ def parser(driver):
         action='store_true',
         help="Enable the cyberattacks simulation. Follow by the filepath to the cyber attack values textfile.")
     argparser.add_argument(
+        '-r', '--risk',
+        action='store_true',
+        help="Enable the conflict points.")
+    argparser.add_argument(
         '-t', '--tasklevel',
         metavar='NUMBER_OF_TASK',
         default=1,

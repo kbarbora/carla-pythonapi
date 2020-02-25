@@ -192,7 +192,8 @@ def init(cyberattack=False):
     risk_no_stop_cars(risks[4])
     risk_front_sculpture(risks[5])
     risk_traffic_jam(risks[6])
-    attack = activate_attack(risk(world_g, spawn_point=sp[19]), 'combo', -50)
+    if attack:
+        attack = activate_attack(risk(world_g, spawn_point=sp[19]), 'combo', -50)
 
     started = True
     # for r in risks:
@@ -363,7 +364,7 @@ def risk_bike_crossing(r, threshold=55):
     global attack
     # sp 2
     r.add_vehicle(filter='bh*')
-    print("-----------------------value of attack is" + attack)
+    # print("-----------------------value of attack is" + attack)
     if attack:
         attack = activate_attack(r, "bike", 150)
     while True:
