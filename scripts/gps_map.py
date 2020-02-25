@@ -151,10 +151,10 @@ TITLE_INPUT = 'INPUT'
 
 PIXELS_PER_METER = 12
 
-MAP_DEFAULT_SCALE = 0.1
+MAP_DEFAULT_SCALE = 0.01
 HERO_DEFAULT_SCALE = .50
 
-PIXELS_AHEAD_VEHICLE = 25
+PIXELS_AHEAD_VEHICLE = 50
 # PIXELS_AHEAD_VEHICLE = 150
 
 # ==============================================================================
@@ -1026,15 +1026,15 @@ class World(object):
             location = self.hero_transform.location
             vehicle_list = [x[0] for x in vehicles if x[0].id != self.hero_actor.id]
 
-            def distance(v): return location.distance(v.get_location())
-            for n, vehicle in enumerate(sorted(vehicle_list, key=distance)):
-                if n > 15:
-                    break
-                vehicle_type = get_actor_display_name(vehicle, truncate=22)
-                info_text.append('% 5d %s' % (vehicle.id, vehicle_type))
-        self._hud.add_info(
-            'NEARBY VEHICLES',
-            info_text)
+        #     def distance(v): return location.distance(v.get_location())
+        #     for n, vehicle in enumerate(sorted(vehicle_list, key=distance)):
+        #         if n > 15:
+        #             break
+        #         vehicle_type = get_actor_display_name(vehicle, truncate=22)
+        #         info_text.append('% 5d %s' % (vehicle.id, vehicle_type))
+        # self._hud.add_info(
+        #     'NEARBY VEHICLES',
+        #     info_text)
 
         return (vehicles, traffic_lights, speed_limits, walkers)
 
