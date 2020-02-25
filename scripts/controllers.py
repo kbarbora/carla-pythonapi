@@ -6,6 +6,7 @@ import _thread
 import sys
 import steering_wheel_control as ControlSW
 import risk_decisions
+import video_interface
 
 if sys.version_info >= (3, 0):
     from configparser import ConfigParser
@@ -96,12 +97,14 @@ class DualControl(object):
         self.k_values = [1.0, 1.0, 1.0]
         self.delta = 0
 
+        self.video = video_interface.VideoPi()
+
         self._play_sound = False
         self._acc_sound = SoundEffect.init_sound()['acc']
         self._horn_sound = SoundEffect.init_sound()['horn']
         # self._acc_sound.set_volume(0)
         # self._acc_sound.play()
-        _thread.start_new_thread(SoundEffect.engine_sound_loop, ())
+        # _thread.start_new_thread(SoundEffect.engine_sound_loop, ())
         world.hud.help.toggle()
         # world.hud.notification("Press 'option' or '?' for help.", seconds=4.0)
 
@@ -152,6 +155,7 @@ class DualControl(object):
                     world.camera_manager.next_sensor()
                 elif event.button == 9:
                     world.hud.help.toggle()
+                    self.video.start_recording(ControlSW.logname + '.h264')
 
         if isinstance(self._control, carla.VehicleControl):
             if not self.attack_ended:

@@ -135,6 +135,7 @@ except ImportError:
 # -- Global vars  --------------------------------------------------------------
 # ==============================================================================
 speed = 0
+logname = ""
 # final_loc = carla.Location(x=187, y=55)
 
 
@@ -266,6 +267,7 @@ def game_loop(args, clock):
 
     finally:
         time.sleep(1)       # delay to allow threads to finish first
+        controller.video.stop_recording()
         if world is not None:
             world.destroy()
 
@@ -342,7 +344,7 @@ def start(args, clock):
 
 
 def create_logfile(args):
-    global attack
+    global attack, logname
     if not os.path.isdir(args.log_filepath):
         # @todo Create custom exception
         raise Exception("log filepath " + args.log_filepath + " does not exists.")

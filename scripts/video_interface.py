@@ -26,7 +26,7 @@ class VideoPi(paramiko.SSHClient):
 
     def start_recording(self, filename, time=False):
         output_file = filename + '.h264'
-        raspivid = '/usr/bin/raspivid -rot 180 -o ' + output_file
+        raspivid = '/usr/bin/raspivid -o ' + output_file
         if not time:
             command = raspivid + ' -t 0'
         else:
@@ -47,7 +47,7 @@ class VideoPi(paramiko.SSHClient):
 
 if __name__ == '__main__':
     client = VideoPi()
-    client.start_recording("tt")
+    client.start_recording("tet")
     print("sleeping")
     time.sleep(10)
     client.stop_recording()
