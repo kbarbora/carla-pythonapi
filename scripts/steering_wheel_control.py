@@ -37,11 +37,11 @@ Instructions:
     Use [R2] button in steering wheel to advance to the next task
     (need to be at the end position)
     Use [L2] button to restart the current task
-    Use [option] button to display this screen
+    Use [option] button in the steering wheel
 
-    1. Press GAS Pedal
-    2. Press Brake Pedal
-    3. Press [option] button to start driving
+    1. Press lightly GAS Pedal and release it
+    2. Press lightly Brake Pedal and release it
+    3. Press [option] button in steering wheel to start driving
 
 """
 
