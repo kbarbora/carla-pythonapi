@@ -1,20 +1,47 @@
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GLib, Gdk
 import os
 
 class EntryWindow(Gtk.Window):
 
     def __init__(self):
         Gtk.Window.__init__(self, title="Driving Simulator")
-        self.set_size_request(300, 100)
+        self.set_border_width(10)
+        # self.set_size_request(300, 100)
 
         self.timeout_id = None
         self.connect("destroy", Gtk.main_quit)
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.add(vbox)
 
+        listbox = Gtk.ListBox()
+        listbox.set_selection_mode(Gtk.SelectionMode.NONE)
+        vbox.pack_start(listbox, True, True, 0)
+
+        row = Gtk.ListBoxRow()
+        hbox_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=50)
+        row.add(hbox_row)
+        vbox_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        hbox_row.pack_start(vbox_row, True, True, 0)
+
+        label1 = Gtk.Label("Welcome to CARLA driving simulator", xalign=0)
+        label2 = Gtk.Label("This is a driving simulator where the goal is to "
+                           "follow a given route and get to the end as fast as possible.\n"
+                           "You are given a realistic "
+                           "urban scenario, and a green line indicating the path to follow "
+                           "will appear on the road.", xalign=0)
+        vbox_row.pack_start(label1, True, True, 0)
+        vbox_row.pack_start(label2, True, True, 0)
+
+        listbox.add(row)
+
         self.image_back = Gtk.Image.new_from_file('../media/images/map_icon.png')
+        self.welcome_image = Gtk.Image.new_from_file('../media/images/carla.png')
+
+        # fixed = Gtk.Fixed()
+        # fixed.put(self.welcome_image, 10, 10)
+        # self.add(fixed)
         # vbox.pack_start()
 
         self.entry = Gtk.Entry()

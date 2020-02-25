@@ -42,7 +42,7 @@ green = carla.Color(100, 255, 0)
 blue = carla.Color(0, 0, 255)
 tick_time = .5
 waypoint_separation = 4
-lifetime = -1
+lifetime = 60
 
 
 def go_straight(debug, current, steps=1):
