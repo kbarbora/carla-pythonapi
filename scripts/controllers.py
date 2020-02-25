@@ -155,6 +155,7 @@ class DualControl(object):
                     world.camera_manager.next_sensor()
                 elif event.button == 9:
                     world.hud.help.toggle()
+                    world.hud.notification("Recroding started")
                     self.video.start_recording(ControlSW.logname + '.h264')
 
         if isinstance(self._control, carla.VehicleControl):
