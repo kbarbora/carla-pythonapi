@@ -30,7 +30,9 @@ class EntryWindow(Gtk.Window):
                            "follow a given route and get to the end as fast as possible.\n"
                            "You are given a realistic "
                            "urban scenario, and a green line indicating the path to follow "
-                           "will appear on the road.", xalign=0)
+                           "will appear on the road.\n"
+                           "However, you have to keep in mind that real traffic regulation applies: \n"
+                           "     Traffic lights, stop signs, speed limits and others.", xalign=0)
         vbox_row.pack_start(label1, True, True, 0)
         vbox_row.pack_start(label2, True, True, 0)
 
