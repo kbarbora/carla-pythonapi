@@ -31,7 +31,8 @@ class EntryWindow(Gtk.Window):
                            "You are given a realistic "
                            "urban scenario, and a green line indicating the path to follow "
                            "will appear on the road.\n"
-                           "However, you have to keep in mind that real traffic regulation applies: \n"
+                           # "However, you have to keep in mind that real traffic regulation applies: \n"
+                           "However, this time you have to follow all traffic regulation: \n"
                            "     Traffic lights, stop signs, speed limits and others.", xalign=0)
         vbox_row.pack_start(label1, True, True, 0)
         vbox_row.pack_start(label2, True, True, 0)
