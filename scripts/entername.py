@@ -2,14 +2,15 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib, Gdk
 import os
+import sys
 
 class EntryWindow(Gtk.Window):
 
-    def __init__(self):
+    def __init__(self, labels):
         Gtk.Window.__init__(self, title="Driving Simulator")
         self.set_border_width(10)
         # self.set_size_request(300, 100)
-
+        label = int(labels)
         self.timeout_id = None
         self.connect("destroy", Gtk.main_quit)
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -24,18 +25,27 @@ class EntryWindow(Gtk.Window):
         row.add(hbox_row)
         vbox_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         hbox_row.pack_start(vbox_row, True, True, 0)
-
         label1 = Gtk.Label("Welcome to CARLA driving simulator", xalign=0)
         label2 = Gtk.Label("This is a driving simulator where the goal is to "
                            "follow a given route and get to the end as fast as possible.\n"
                            "You are given a realistic "
                            "urban scenario, and a green line indicating the path to follow "
-                           "will appear on the road.\n"
-                           # "However, you have to keep in mind that real traffic regulation applies: \n"
-                           "However, this time you have to follow all traffic regulation: \n"
-                           "     Traffic lights, stop signs, speed limits and others.", xalign=0)
+                           "will appear on the road.\n", xalign = 0)
+        if label == 1:
+            label3 = Gtk.Label("However, you have to keep in mind that real traffic regulation applies: \n"
+                               "       Traffic lights, stop signs, speed limits and others.", xalign = 0)
+        if label == 2:
+            label3 = Gtk.Label("However, this time you have to follow all traffic regulation: \n"
+                               "       Traffic lights, stop signs, speed limits and others.\n"
+                               "There are penalties for every time you break the rules:\n"
+                               "      -If you ran a red light, you will have to drive 30 seconds more\n"
+                               "      -If you hit a car, you will have to drive 1 minute more\n"
+                               "      -If you hit a bike or pedestrian, you will have to drive 2 minutes more\n"
+                               "For example, if you hit 3 cars and ran 4 red lights, a total of 5 minutes extra of driving.", xalign=0)
         vbox_row.pack_start(label1, True, True, 0)
         vbox_row.pack_start(label2, True, True, 0)
+        vbox_row.pack_start(label3, True, True, 0)
+        # vbox_row.pack_start(label4, True, True, 0)
 
         listbox.add(row)
 
@@ -97,8 +107,12 @@ class EntryWindow(Gtk.Window):
             icon_name)
 
 
-def get_name():
-    win = EntryWindow()
+def get_name(argv):
+    if argv:
+        label = argv
+    else:
+        label = 1
+    win = EntryWindow(label)
     try:
         win.show_all()
         win.connect("destroy", Gtk.main_quit)
@@ -110,4 +124,4 @@ def get_name():
 
 
 if __name__ == '__main__':
-    get_name()
+    get_name(sys.argv[1])

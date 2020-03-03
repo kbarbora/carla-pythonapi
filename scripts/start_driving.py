@@ -24,7 +24,6 @@ import datetime
 import _thread
 import sys
 import time
-
 import psutil
 import pygame
 try:
@@ -47,7 +46,8 @@ def main(parse=True, pre_parsed=False, driver_name=False):
 
     check_server()
     if not driver_name:
-        driver = get_name()
+        driver = get_name(sys.argv)
+        sys.argv = sys.argv[2:]
     else:
         driver = driver_name
     if parse:
