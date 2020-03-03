@@ -177,7 +177,8 @@ def init(cyberattack=False):
     carla_cola = risk(world_g, spawn_point=sp[21])
     tunnel = risk(world_g, spawn_point=sp[3:5])
     park = risk(world_g, spawn_point=sp[25])
-    stop = [sp[12], sp[9], sp[5], sp[22], sp[20], sp[23], sp[16]]
+    # stop = [sp[12], sp[9], sp[5], sp[22], sp[20], sp[23], sp[16]]
+    stop = [sp[12], sp[9], sp[22], sp[20], sp[16]]
     stop_traffic = risk(world_g, spawn_point=stop)
     sculpture = risk(world_g, spawn_point=[sp[1], sp[0], sp[24]])
     traffic_jam = risk(world_g, spawn_point=[sp[10], sp[8], sp[6], sp[10], sp[7], sp[15], sp[13], sp[19]])
@@ -307,7 +308,7 @@ def risk_no_stop_cars(r, threshold=40):
             return True
 
 
-def risk_ped_park(r, threshold=50):
+def risk_ped_park(r, threshold=40):
     # sp 25
     control = carla.WalkerControl()
     control.speed = 3
@@ -344,7 +345,7 @@ def risk_tunnel(r, threshold=60):
             return True
 
 
-def risk_carlacola(r, threshold=80):
+def risk_carlacola(r, threshold=75):
     global attack
     # sp 21
     r.add_vehicle(filter='jeep*')
