@@ -38,10 +38,10 @@ class EntryWindow(Gtk.Window):
             label3 = Gtk.Label("However, this time you have to follow all traffic regulation: \n"
                                "       Traffic lights, stop signs, speed limits and others.\n"
                                "There are penalties for every time you break the rules:\n"
-                               "      -If you ran a red light, you will have to drive 30 seconds more\n"
-                               "      -If you hit a car, you will have to drive 1 minute more\n"
-                               "      -If you hit a bike or pedestrian, you will have to drive 2 minutes more\n"
-                               "For example, if you hit 3 cars and ran 4 red lights, a total of 5 minutes extra of driving.", xalign=0)
+                               "      -If you ran a red light, 30 seconds more will be added to the total time\n"
+                               "      -If you hit a car, 1 minute will be added to the total time\n"
+                               "      -If you hit a bike or pedestrian, 2 minutes will be added to the total time\n"
+                               "For example, if you hit 3 cars and ran 4 red lights, a total of 5 minutes will be added to the total time", xalign=0)
         vbox_row.pack_start(label1, True, True, 0)
         vbox_row.pack_start(label2, True, True, 0)
         vbox_row.pack_start(label3, True, True, 0)
