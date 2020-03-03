@@ -40,7 +40,7 @@ import time
 
 green = carla.Color(100, 255, 0)
 blue = carla.Color(0, 0, 255)
-tick_time = .3
+tick_time = .5
 waypoint_separation = 4
 lifetime = 430
 

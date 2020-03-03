@@ -32,17 +32,14 @@ Welcome to CARLA driving simulator.
 Instructions:
     Use steering wheel to change the direction
     Use gas pedal (right pedal) to accelerate
-    Use brake pedal (left pedal) to stop
-    Use [left paddle] in steering wheel to enable/disable reverse
-    Use [R2] button in steering wheel to advance to the next task
-    (need to be at the end position)
+    Use middle pedal to brake
+    Use [left paddle] on steering wheel to toggle reverse
     Use [L2] button to restart the current task
-    Use [option] button in the steering wheel
 
-    1. Press lightly GAS Pedal and release it
-    2. Press lightly Brake Pedal and release it
-    3. Press [option] button in steering wheel to start driving
-
+    Before you start driving please follow the next steps:
+        1. Press lightly GAS Pedal and release it
+        2. Press lightly Brake Pedal and release it
+        3. Press [option] button in steering wheel to start driving
 """
 
 from __future__ import print_function
