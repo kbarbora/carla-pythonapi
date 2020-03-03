@@ -287,7 +287,7 @@ def risk_front_sculpture(r, threshold=45):
                 #     return True
 
 
-def risk_no_stop_cars(r, threshold=40):
+def risk_no_stop_cars(r, threshold=55):
     global attack
     # sp 22, 5, 9, 12, 16, 23, 20
     # r.spawn_point = [r.spawn_point[12], r.spawn_point[9], r.spawn_point[5], r.spawn_point[16], r.spawn_point[20], r.spawn_point[23], r.spawn_point[22]]
@@ -308,7 +308,7 @@ def risk_no_stop_cars(r, threshold=40):
             return True
 
 
-def risk_ped_park(r, threshold=40):
+def risk_ped_park(r, threshold=43):
     # sp 25
     control = carla.WalkerControl()
     control.speed = 3
@@ -345,7 +345,7 @@ def risk_tunnel(r, threshold=60):
             return True
 
 
-def risk_carlacola(r, threshold=75):
+def risk_carlacola(r, threshold=80):
     global attack
     # sp 21
     r.add_vehicle(filter='jeep*')

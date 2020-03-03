@@ -46,8 +46,7 @@ def main(parse=True, pre_parsed=False, driver_name=False):
 
     check_server()
     if not driver_name:
-        driver = get_name(sys.argv)
-        sys.argv = sys.argv[2:]
+        driver = get_name(sys.argv.pop(1))
     else:
         driver = driver_name
     if parse:
