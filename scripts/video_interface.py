@@ -5,7 +5,7 @@ import thread
 class VideoPi(paramiko.SSHClient):
     def __init__(self):
         paramiko.SSHClient.__init__(self)
-        self.ip = '192.168.1.193'
+        self.ip = '192.168.1.222'
         self.port = 22
         # self.load_host_keys()
         self._username = 'pi'

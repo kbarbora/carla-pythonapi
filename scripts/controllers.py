@@ -156,7 +156,7 @@ class DualControl(object):
                 elif event.button == 9:
                     world.hud.help.toggle()
                     world.hud.notification("Recording started")
-                    self.video.start_recording(ControlSW.logname + '.h264')
+                    self.video.start_recording(ControlSW.logname)
 
         if isinstance(self._control, carla.VehicleControl):
             if not self.attack_ended:
