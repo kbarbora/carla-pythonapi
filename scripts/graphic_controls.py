@@ -312,7 +312,7 @@ class HUD(object):
                     item = item[0]
                 if item:  # At this point has to be a str.
                     surface = self._font_mono.render(item, True, (255, 255, 255))
-                    display.blit(surface, (1200, v_offset + 800))
+                    display.blit(surface, (1000, v_offset + 800))
                 v_offset += 18
         self._notifications.render(display)
         self.help.render(display)

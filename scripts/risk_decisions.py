@@ -253,7 +253,7 @@ def risk_traffic_jam(r, threshold=60):
                         # return True
                     time.sleep(2.5)
                     r.start_vehicle()
-                if int(dist) > 50:
+                if int(dist) > threshold:
                     return True
 
 
@@ -287,7 +287,7 @@ def risk_front_sculpture(r, threshold=45):
                 #     return True
 
 
-def risk_no_stop_cars(r, threshold=55):
+def risk_no_stop_cars(r, threshold=60):
     global attack
     # sp 22, 5, 9, 12, 16, 23, 20
     # r.spawn_point = [r.spawn_point[12], r.spawn_point[9], r.spawn_point[5], r.spawn_point[16], r.spawn_point[20], r.spawn_point[23], r.spawn_point[22]]
