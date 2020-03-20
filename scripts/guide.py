@@ -5,6 +5,7 @@ import pygame
 import thread
 import time
 import steering_wheel_control as ControlSW
+
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
@@ -24,12 +25,12 @@ TRANSPARENT = 0
 VISIBLE = 255
 RIGHT = 0
 LEFT = 1
-DRIVER_VEHICLE = "tt"
 Yaxis = 600
 Xaxis = 450
 Roffset = 400
-Rpos = (Xaxis+Roffset, Yaxis)
+Rpos = (Xaxis + Roffset, Yaxis)
 Lpos = (Xaxis, Yaxis)
+
 
 class Guide(object):
 
@@ -37,61 +38,78 @@ class Guide(object):
         self.rarrow = pygame.image.load("../media/images/arrow_right_small.png").convert_alpha()
         self.larrow = pygame.image.load("../media/images/arrow_left_small.png").convert_alpha()
         self.timeout = 3
-        self.shown = False
-        self.driver = driver
-        # pygame.display.update()
+        self.left = False
+        self.right = False
+        self.driver = ControlSW.world.player
+        thread.start_new_thread(self.autohide_arrow, ())
+        return
 
-    def show_left(self, timeout=0):
+    def _show_left(self):
+        self.larrow.set_alpha(VISIBLE)
         ControlSW.display.blit(self.larrow, Lpos)
-        self.shown = True
-        # pygame.display.update()
-        if timeout:
-            thread.start_new_thread(time.sleep, (timeout,))
-            self.rarrow.set_alpha(TRANSPARENT)
-            # self.shown = False
-            # pygame.display.update()
-        return
+        self.left = True
+        return self.left
 
-    def show_right(self, timeout=0):
+    def _hide_left(self):
+        self.larrow.set_alpha(TRANSPARENT)
+        ControlSW.display.blit(self.larrow, Lpos)
+        self.left = False
+        return self.left
+
+    def _show_right(self):
+        self.rarrow.set_alpha(VISIBLE)
         ControlSW.display.blit(self.rarrow, Rpos)
-        pygame.display.update()
-        return
+        self.right = True
+        return self.right
 
+    def _hide_right(self):
+        self.rarrow.set_alpha(TRANSPARENT)
+        ControlSW.display.blit(self.rarrow, Rpos)
+        self.right = False
+        return self.right
 
-    def blit_arrow_location(self, arrow, location, threshold=50):
-        end_threshold = int(threshold / 5)
+    def blit_arrow(self, driver, location, direction, threshold=50):
+        distance = _distance_from_driver(driver, location)
+        if int(distance) < threshold:
+            if direction == RIGHT:
+                return self._show_right()
+            else:
+                return self._show_left()
+        return False
+
+    def autohide_arrow(self, timeout=5):
         while True:
-            dist = self._distance_from_driver(self.driver, location)
-            print(dist)
-            time.sleep(.1)
-            if int(dist) < threshold:
-                print("----Blit arrow by location activated")
+            time.sleep(1)
+            if self.left:
+                time.sleep(timeout)
+                self._hide_left()
+            if self.right:
+                time.sleep(timeout)
+                self._hide_right()
 
 
+def _distance_from_driver(driver, this_location):
+    return this_location.distance(driver.get_location())
+# ______________________________________________________________________________________________________________________
+#   End of class Guide
+# ______________________________________________________________________________________________________________________
 
-    def blit_arrow(self, arrow, timeout=0):
-        if arrow == RIGHT:
-            self.rarrow.set_alpha(VISIBLE)
-            ControlSW.display.blit(self.rarrow, Rpos)
-            self.shown = True
-            # time.sleep(timeout)
-            # self.rarrow.set_alpha(TRANSPARENT)
-            # ControlSW.display.blit(self.rarrow, Rpos)
+locations = []
+directions = []
+
+def init():
+    # define all locations for turns and directions
+
+
+def render():
+    return
+
+
+def blit_arrow(guide, location, direction, threshold=50):
+    distance = _distance_from_driver(driver, location)
+    if int(distance) < threshold:
+        if direction == RIGHT:
+            return guide._show_right()
         else:
-            self.larrow.set_alpha(VISIBLE)
-            ControlSW.display.blit(self.larrow, Lpos)
-            self.shown = True
-            # time.sleep(timeout)
-            # self.larrow.set_alpha(TRANSPARENT)
-            # ControlSW.display.blit(self.larrow, Lpos)
-        # self.shown = False
-        return
-
-
-
-    @staticmethod
-    def _distance_from_driver(driver, this_location):
-        return this_location.distance(driver.get_location())
-
-
-
+            return guide.show_left()
+    return False

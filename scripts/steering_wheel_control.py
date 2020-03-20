@@ -257,7 +257,6 @@ def game_loop(args, clock):
             thread.start_new_thread(controller.attack_trigger, ())
         time.sleep(1.5)
         thread.start_new_thread(hud.write_driving_data, (True,))
-        hud.create_guide()
         while True:
             clock.tick_busy_loop(40)    # max fps in client
             if controller.parse_events(world, clock):
