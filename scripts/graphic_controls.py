@@ -8,6 +8,7 @@ import time
 import math
 import weakref
 import steering_wheel_control as ControlSW
+from guide import Guide
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
@@ -162,6 +163,10 @@ class HUD(object):
             self.attack = True
         else:
             self.attack = False
+
+    def create_guide(self):
+        self.guide = Guide()
+        return
 
     def on_world_tick(self, timestamp):
         self._server_clock.tick()

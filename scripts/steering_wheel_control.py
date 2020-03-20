@@ -133,6 +133,9 @@ except ImportError:
 # ==============================================================================
 speed = 0
 logname = ""
+world = 0
+display = 0
+DRIVER_VEHICLE = "tt"
 # final_loc = carla.Location(x=187, y=55)
 
 
@@ -199,7 +202,8 @@ class World(object):
     def tick(self, clock):
         self.hud.tick(self, clock)
 
-    def render(self, display):
+    def render(self):
+        global display
         self.camera_manager.render(display)
         self.hud.render(display)
 
@@ -232,11 +236,10 @@ def find_weather_presets():
 
 
 def game_loop(args, clock):
-    global hud, controller
+    global hud, controller, world, display
     # attack_performed = 0
     pygame.init()
     pygame.font.init()
-    world = None
 
     try:
         client = carla.Client(args.host, args.port)
@@ -254,12 +257,13 @@ def game_loop(args, clock):
             thread.start_new_thread(controller.attack_trigger, ())
         time.sleep(1.5)
         thread.start_new_thread(hud.write_driving_data, (True,))
+        hud.create_guide()
         while True:
             clock.tick_busy_loop(40)    # max fps in client
             if controller.parse_events(world, clock):
                 return
             world.tick(clock)
-            world.render(display)
+            world.render()
             pygame.display.flip()
 
     finally:
@@ -338,6 +342,16 @@ def start(args, clock):
     #     _thread.start_new_thread(risk_decisions.init, (args.cyberattack,))
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
+
+    def get_driver():
+        global world
+        actors = world.get_actors()
+        # print(DRIVER_VEHICLE)
+        print("trying to get driver")
+        for actor in actors:
+            if actor.type_id.endswith(DRIVER_VEHICLE):
+                print("driver FOUND")
+                return actor
 
 
 def create_logfile(args):

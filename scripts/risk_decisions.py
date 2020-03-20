@@ -144,17 +144,17 @@ def time_elapsed(start, end):
     return start - end
 
 
-def autostart(risk, driver, distance_trigger):
-    if int(distance_from_driver(driver, risk)) <= distance_trigger:
-        start = start_risk(risk)
+def autostart(this_risk, driver, distance_trigger):
+    if int(_distance_from_driver(driver, this_risk)) <= distance_trigger:
+        start = start_risk(this_risk)
 
 
-def distance_from_driver(driver, risk):
+def _distance_from_driver(driver, this_risk):
     driver_loc = driver.get_location()
-    return risk.location.distance(driver_loc)
+    return this_risk.location.distance(driver_loc)
 
 
-def get_driver():
+def _get_driver():
     global world_g
     actors = world_g.get_actors()
     # print(DRIVER_VEHICLE)
@@ -184,7 +184,7 @@ def init(cyberattack=False):
     traffic_jam = risk(world_g, spawn_point=[sp[10], sp[8], sp[6], sp[10], sp[7], sp[15], sp[13], sp[19]])
     risks = [bike_crossing, carla_cola, tunnel, park, stop_traffic, sculpture, traffic_jam]
     time.sleep(10)
-    driver_g = get_driver()
+    driver_g = _get_driver()
     risk_bike_crossing(risks[0])
     # time.sleep(5)
     risk_carlacola(risks[1])
@@ -237,7 +237,7 @@ def risk_traffic_jam(r, threshold=60):
         r.add_vehicle(spawn_point=s)
         time.sleep(.1)
     while True:
-        dist = distance_from_driver(driver_g, r)
+        dist = _distance_from_driver(driver_g, r)
         # print(dist)
         time.sleep(.1)
         if int(dist) < 55:
@@ -245,7 +245,7 @@ def risk_traffic_jam(r, threshold=60):
             r.start_vehicle()
             time.sleep(5)
             while True:
-                dist = distance_from_driver(driver_g, r)
+                dist = _distance_from_driver(driver_g, r)
                 for s in range(len(r.spawn_point)):
                     # try:
                     r.add_vehicle(spawn_point=s)
@@ -268,7 +268,7 @@ def risk_front_sculpture(r, threshold=45):
     if attack:
         attack = activate_attack(r, "sculpture", 50)
     while True:
-        dist = distance_from_driver(driver_g, r)
+        dist = _distance_from_driver(driver_g, r)
         # print(dist)
         time.sleep(.1)
         if int(dist) < threshold:
@@ -278,7 +278,7 @@ def risk_front_sculpture(r, threshold=45):
             while True:
                 time.sleep(4)
                 # try:
-                dist = distance_from_driver(driver_g, r)
+                dist = _distance_from_driver(driver_g, r)
                 r.add_vehicle(spawn_point=-1)
                 r.start_vehicle()
                 if int(dist) > threshold+10:
@@ -299,7 +299,7 @@ def risk_no_stop_cars(r, threshold=60):
         attack = activate_attack(r, 'inters', 45)
 
     while True:
-        dist = distance_from_driver(driver_g, r)
+        dist = _distance_from_driver(driver_g, r)
         # print(dist)
         time.sleep(.1)
         if int(dist) < threshold:
@@ -316,7 +316,7 @@ def risk_ped_park(r, threshold=43):
     control.direction.y = 1
     r.add_pedestrian(control=control)
     while True:
-        dist = distance_from_driver(driver_g, r)
+        dist = _distance_from_driver(driver_g, r)
         # print(dist)
         time.sleep(.1)
         if int(dist) < threshold:
@@ -337,7 +337,7 @@ def risk_tunnel(r, threshold=60):
         attack = activate_attack(r, "tunnel", 80)
     while True:
         time.sleep(.1)
-        dist = distance_from_driver(driver_g, r)
+        dist = _distance_from_driver(driver_g, r)
         # print(dist)
         if int(dist) < threshold:
             print('-------------Tunnel risk activated')
@@ -370,7 +370,7 @@ def risk_bike_crossing(r, threshold=55):
         attack = activate_attack(r, "bike", 150)
     while True:
         time.sleep(.1)
-        dist = distance_from_driver(driver_g, r)
+        dist = _distance_from_driver(driver_g, r)
         # print(dist)
         if int(dist) <= threshold:
             r.start_vehicle()
@@ -380,7 +380,7 @@ def risk_bike_crossing(r, threshold=55):
 def activate_attack(risk_location, attack_string, threshold, special=False):
     while True:
         time.sleep(.1)
-        dist = distance_from_driver(driver_g, risk_location)
+        dist = _distance_from_driver(driver_g, risk_location)
         if special:
             dist = driver_g.get_location().y
         if int(dist) <= threshold:
