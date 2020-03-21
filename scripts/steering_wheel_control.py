@@ -75,6 +75,8 @@ except IndexError:
 
 from sensors import CollisionSensor, LaneInvasionSensor, GnssSensor
 from controllers import DualControl
+from guide import Guide
+import guide
 from text import FadingText, HelpText
 from graphic_controls import CameraManager, HUD
 import carla
@@ -240,6 +242,7 @@ def game_loop(args, clock):
     # attack_performed = 0
     pygame.init()
     pygame.font.init()
+    guide_me = Guide()
 
     try:
         client = carla.Client(args.host, args.port)
@@ -263,6 +266,7 @@ def game_loop(args, clock):
                 return
             world.tick(clock)
             world.render()
+            guide.render(guide_me)
             pygame.display.flip()
 
     finally:
